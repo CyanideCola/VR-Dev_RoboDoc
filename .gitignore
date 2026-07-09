@@ -73,3 +73,18 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+Assets/Oculus/OculusProjectSetupSettings.asset
+Assets/Oculus/OculusProjectSetupSettings.asset.meta
+Assets/Plugins.meta
+Assets/Plugins/Android.meta
+Assets/Plugins/Android/AndroidManifest.xml
+Assets/Plugins/Android/AndroidManifest.xml.meta
+Assets/Settings.meta
+Assets/Settings/Build Profiles.meta
+Assets/Settings/Build Profiles/Meta Quest.asset
+Assets/Settings/Build Profiles/Meta Quest.asset.meta
+Assets/XR/Settings/OpenXRPackageSettings.asset
+ProjectSettings/QualitySettings.asset
+ProjectSettings/QualitySettings.asset
+Assets/XR/Settings/OpenXRPackageSettings.asset
+*.asset
