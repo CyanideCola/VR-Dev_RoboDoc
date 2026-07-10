@@ -88,3 +88,5 @@ ProjectSettings/QualitySettings.asset
 ProjectSettings/QualitySettings.asset
 Assets/XR/Settings/OpenXRPackageSettings.asset
 *.asset
+Assets/Resources/DevAgentSettings.asset.meta
+Assets/XR/Settings/OpenXRPackageSettings.asset
