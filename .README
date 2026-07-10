@@ -1,0 +1,165 @@
+# RoboDoc
+
+## Vision
+
+A stressful resource management game where the player, a RoboDoc (they're also a robot themselves), has to take care of all robo-patients who enter the firm with their wacky and wild injuries.
+
+---
+
+# Design Decision Guide
+
+This is a working guide, not a finished spec. Each section below captures what's been decided so far and flags the open questions or ideas that still need to be worked out.
+
+## Table of Contents
+
+- [Parts](#parts)
+- [Puzzles](#puzzles)
+- [Easter Eggs](#easter-eggs)
+- [System Hierarchy](#system-hierarchy)
+- [File Structure](#file-structure)
+- [Upgrades in Shop](#upgrades-in-shop)
+- [DLC Themes / Workshop Support](#dlc-themes--workshop-support)
+- [Soundtrack](#soundtrack)
+- [Sound Design](#sound-design)
+- [Lore](#lore)
+
+---
+
+## Parts
+
+### Clinic Stations
+**Decided:** Clinic laid out in a 360° space with four stations — Reception (North), Tools (West), Shop (East), Hangar (South). Shop includes floppy disks for upgrades, a PvZ-style car shop, and a funnel that drops bought items down from the computer.
+
+**Still to decide:**
+- [ ] What actually happens at Reception?
+- [ ] How does the funnel mechanic work mechanically (timing, physics, player interaction)?
+
+### Robot Anatomy
+**Decided:** All parts connect via wires.
+- Head: Vision Module, Cooling System, Hearing Module, Signal/Antenna, Speaking Module, OS/Storage
+- Arms
+- Legs
+- Torso: Core, Battery, RAM
+- Pelvis: Fart Module, Coolant Storage
+---
+
+## Puzzles
+
+### Damage Types
+**Decided (partial):**
+- Head: antenna signal calibration, missing/replacing modules, lost memory, speaking module issues, cleaning the hearing module, dents
+- Arms: mobility issues, missing limb, wire replacement
+- Torso: clear cookies, firewall, core transplant
+
+**Still to decide:**
+- [ ] Legs and Pelvis damage types aren't defined yet
+- [ ] Map each damage type to a specific puzzle mechanic
+
+### Core Mechanics
+**Decided direction:** hidden damage the player can discover for bonus pay, delayed feedback on quality of work (à la *Papers, Please* citations), physical actions like hammering/welding, a break-off → workdesk → puzzle flow, smoke/effects to mask a swapped part, and "test afflictions" like low battery.
+
+**Still to decide:**
+- [ ] Exactly how/when does the owner discover a mistake, and what's the consequence?
+- [ ] What's the full list of maskable actions and effects?
+- [ ] What's the full list of test afflictions?
+
+### Guidebook
+- [ ] Define what the in-game guidebook contains and how the player accesses it
+
+### Holding / Breaking / Placing
+- [ ] Define this core interaction loop mechanically (controls, physics, feel)
+
+### Pressure Systems
+**Decided:** Electricity and Money (via a day/time mechanic) are the two pressure sources.
+
+**Still to decide:**
+- [ ] How does electricity function as pressure (a drain over time? a cost per tool use?)
+- [ ] How does the day/time mechanic create pressure (deadline per patient? shift length?)
+
+### Storage / Chain Area
+**Decided:** Dropping a part in the chain/storage area forfeits the money for it but keeps the part.
+
+**Still to decide:**
+- [ ] Does this reward hoarding over efficiency? Confirm it's the intended incentive.
+
+### Prototype Walkthroughs
+**Decided:**
+- *Prototype 1:* pick up items → remove head via neck latch (rotate + lift) → place on workspace → plug antenna into computer, adjust frequency, reattach → hammer off and replace arm → send bot away
+- *Prototype 2:* button to advance to the next robot
+
+**Still to decide:**
+- [ ] What comes after Prototype 2's "next robot" button?
+- [ ] Which puzzle prototype should get built next?
+
+---
+
+## Easter Eggs
+- [ ] Brainstorm and list easter egg ideas — nothing defined yet
+
+---
+
+## System Hierarchy
+
+**Decided:**
+1. Bots are composed of parts. The main core is the battery, called the **JSY** ("chassis"), with randomized attachment points (e.g. head joint, 2 arm joints, 2 leg joints). Connection points only accept their matching part type. A part may have subparts, and subparts should have puzzles (not all puzzles are subparts). Each part has a volume, and each puzzle takes up volume.
+2. Tools affect all puzzles; each action needs a specific tool. Two types: handheld (Hammer, Screwdriver, Feather Duster, Grinder) and large (Antenna Receiver).
+
+**Still to decide:**
+- [ ] Full randomization rules for JSY attachment points — how many head/arm/leg variants exist?
+- [ ] Are more large tools needed beyond the Antenna Receiver?
+- [ ] How do tools get unlocked or upgraded over time?
+
+---
+
+## File Structure
+- [ ] Define the project's folder/file structure — nothing defined yet
+
+---
+
+## Upgrades in Shop
+
+**Decided ideas:** Floppy disks for upgrades, a PvZ-style car shop, a funnel-drop mechanic, and roguelite-style upgrades (concept only).
+
+**Still to decide:**
+- [ ] What do floppy disk upgrades actually unlock or change?
+- [ ] Define the roguelite upgrade system — per-run or permanent?
+- [ ] Full shop catalog and pricing
+
+---
+
+## DLC Themes / Workshop Support
+
+**Proposed themes:** Care for the wounded (CIA), Medical, Quarantine Zone (Zombie)
+
+**Still to decide:**
+- [ ] Pick a primary theme direction vs. treating these as DLC/reskins
+- [ ] Define workshop support scope — mod support? Custom skins?
+
+---
+
+## Soundtrack
+
+Lead: Dan
+
+**Still to decide:**
+- [ ] Musical direction/style
+- [ ] Track list
+
+---
+
+## Sound Design
+
+Lead: Q
+
+**Still to decide:**
+- [ ] Sound design direction
+- [ ] SFX list
+
+---
+
+## Lore
+- [ ] Develop world lore — nothing defined yet
+
+---
+
+*Update the checkboxes as decisions get made — this doc is meant to track open questions, not just document finished design.*
