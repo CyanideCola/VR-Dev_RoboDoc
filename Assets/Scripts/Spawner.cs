@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class Spawner : MonoBehaviour
@@ -7,8 +8,10 @@ public class Spawner : MonoBehaviour
     public Transform spawnPoint;
     public IntakeScreen intake;
     public bool spawnOnStart = true;
+    public float spawnDelay = 8f;     // seconds until the next robot after you accept or decline
 
     Robot current;
+    bool queued;
 
     public Transform ExitPoint { get { return spawnPoint ? spawnPoint : transform; } }
 
@@ -27,4 +30,18 @@ public class Spawner : MonoBehaviour
     }
 
     public void ReleaseCurrent() { current = null; }
+
+    public void QueueNext()
+    {
+        if (queued) return;
+        StartCoroutine(SpawnAfterDelay());
+    }
+
+    IEnumerator SpawnAfterDelay()
+    {
+        queued = true;
+        yield return new WaitForSeconds(spawnDelay);
+        queued = false;
+        SpawnNext();
+    }
 }

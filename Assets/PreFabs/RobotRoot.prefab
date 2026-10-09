@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4023361546812357073}
   - component: {fileID: 3084914111155817675}
   - component: {fileID: 510174229120813056}
+  - component: {fileID: 3013544818299491043}
   m_Layer: 0
   m_Name: RobotRoot
   m_TagString: Untagged
@@ -48,6 +49,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Robot
   state: 0
   walker: {fileID: 510174229120813056}
+  poofPrefab: {fileID: 0}
 --- !u!114 &510174229120813056
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -63,6 +65,22 @@ MonoBehaviour:
   speed: 1.2
   turnSpeed: 360
   stopDistance: 0.05
+--- !u!114 &3013544818299491043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1028951277916976115}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e511d97643e38f44ca73aa4c90dc3094, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RobotFaults
+  possibleFaults: []
+  reported: []
+  payPerReported: 100
+  payPerHidden: 50
 --- !u!1001 &1873103384519143768
 PrefabInstance:
   m_ObjectHideFlags: 0
