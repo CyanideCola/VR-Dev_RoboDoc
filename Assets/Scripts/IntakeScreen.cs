@@ -6,7 +6,9 @@ public class IntakeScreen : MonoBehaviour
 {
     public GameObject intakePanel;    // panel with complaint text and Accept/Decline
     public TMP_Text complaintText;
-    public TMP_Text statusText;       // always visible: money, level, rack
+    public TMP_Text statusText;       // rack list only
+    public TMP_Text moneyText;        // header, e.g. $1,250
+    public TMP_Text levelText;        // header chip, e.g. LV 2
     public Spawner spawner;
     public Rack rack;
 
@@ -18,12 +20,13 @@ public class IntakeScreen : MonoBehaviour
 
     public void RefreshStatus()
     {
-        if (!statusText) return;
-        var sb = new StringBuilder();
         var gp = GameProgress.Instance;
-        if (gp) sb.Append("MONEY: $").Append(gp.money).Append("   LEVEL ").Append(gp.level + 1).Append("\n\n");
-        if (rack) sb.Append(rack.Summary());
-        statusText.text = sb.ToString();
+        if (gp)
+        {
+            if (moneyText) moneyText.text = "$" + gp.money.ToString("N0");
+            if (levelText) levelText.text = "LV " + (gp.level + 1);
+        }
+        if (statusText && rack) statusText.text = rack.Summary();
     }
 
     public void Show(Robot robot)
@@ -37,7 +40,7 @@ public class IntakeScreen : MonoBehaviour
         else if (rf.reported.Count == 0) Debug.LogWarning("IntakeScreen: no reported faults. Is Possible Faults filled in on RobotFaults?");
         else
         {
-            var sb = new StringBuilder("INCOMING PATIENT\n");
+            var sb = new StringBuilder();
             foreach (var f in rf.reported) sb.Append("- ").Append(f.symptom).Append('\n');
             complaintText.text = sb.ToString();
         }

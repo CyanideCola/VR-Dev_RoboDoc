@@ -3,52 +3,60 @@ using UnityEngine;
 
 public class RobotFaults : MonoBehaviour
 {
-    public List<Fault> possibleFaults;
+    public RepairDatabase database;        // optional: drives each spot's symptom, tool and work
+    public List<Fault> possibleFaults;     // the fault spots on this robot
     public List<Fault> reported = new List<Fault>();
+    public int payPerReported = 100;
+    public int payPerHidden = 50;
+
     readonly List<Fault> hidden = new List<Fault>();
+    readonly List<RepairEntry> used = new List<RepairEntry>();
 
     void Awake()
     {
-        foreach (var f in possibleFaults) f.gameObject.SetActive(false);
-        var pool = new List<Fault>(possibleFaults);
+        var pool = new List<Fault>();
+        foreach (var f in possibleFaults)
+            if (f) { f.gameObject.SetActive(false); pool.Add(f); }
 
-        int rMin = 1, rMax = 1, hMin = 0, hMax = 0;
+        int level = 0, rMin = 1, rMax = 1, hMin = 0, hMax = 0;
         float mult = 1f;
-        if (GameProgress.Instance)
+        var gp = GameProgress.Instance;
+        if (gp)
         {
-            var L = GameProgress.Instance.Current;
-            int extra = GameProgress.Instance.Overflow;
+            var L = gp.Current;
+            int extra = gp.Overflow;
+            level = gp.level;
             rMin = L.minReported; rMax = L.maxReported;
             hMin = L.minHidden;   hMax = L.maxHidden + extra;
             mult = L.workMultiplier + 0.1f * extra;
         }
 
-        // Counts are capped by how many fault spots the prefab actually has
         int reportedCount = Mathf.Min(Random.Range(rMin, rMax + 1), pool.Count);
         int hiddenCount = Mathf.Min(Random.Range(hMin, hMax + 1), pool.Count - reportedCount);
 
         for (int i = 0; i < reportedCount; i++)
         {
-            var f = Pick(pool, mult);
+            var f = Pick(pool, mult, level);
             f.reported = true;
             reported.Add(f);
         }
-        for (int i = 0; i < hiddenCount; i++) hidden.Add(Pick(pool, mult));
+        for (int i = 0; i < hiddenCount; i++) hidden.Add(Pick(pool, mult, level));
     }
 
-    Fault Pick(List<Fault> pool, float mult)
+    Fault Pick(List<Fault> pool, float mult, int level)
     {
         int i = Random.Range(0, pool.Count);
         var f = pool[i];
         pool.RemoveAt(i);
+        if (database)
+        {
+            var e = database.Roll(f.region, f.requiredTool, level, used);
+            if (e != null) { f.Apply(e); used.Add(e); }
+        }
         f.gameObject.SetActive(true);
         f.workNeeded *= mult;
         return f;
     }
-
-    // Called at handoff. Keep the result hidden from the player until the owner reacts.
-    public int payPerReported = 100;
-    public int payPerHidden = 50;
 
     public int Evaluate()
     {
