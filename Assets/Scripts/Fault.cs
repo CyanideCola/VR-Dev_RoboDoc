@@ -27,7 +27,7 @@ public class Fault : MonoBehaviour
     {
         if (isFixed || tool != requiredTool) return;   // wrong tool: nothing happens
         progress += amount;
-        if (progress >= workNeeded) { isFixed = true; Refresh(); }
+        if (progress >= workNeeded) { isFixed = true; Refresh(); TutorialEvents.Raise("Fixed"); }
     }
 
     void Refresh()

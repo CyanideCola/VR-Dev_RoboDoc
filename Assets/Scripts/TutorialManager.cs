@@ -45,9 +45,6 @@ public class TutorialManager : MonoBehaviour
         Say("Welcome to RoboDoc!\nSqueeze the grip to pick up the mallet. Let go to put it down.");
         yield return WaitForAny("Grab:Mallet");
 
-        Say("Push the right thumbstick up to show the teleport ray. Aim at the station by the computer and let go.");
-        yield return new WaitUntil(() => Near(counterStand));
-
         Say("A patient is on its way.");
         spawner.SpawnNext();
         yield return WaitForAny("RobotAtCounter");
@@ -58,7 +55,7 @@ public class TutorialManager : MonoBehaviour
         Say("The robot went into the first free rack slot. The screen lists all four slots. When they are full you cannot accept more.");
         yield return new WaitForSeconds(7f);
 
-        Say("Teleport to the station by the rack.");
+        Say("Teleport to the station by the rack. Push the right thumbstick up to show the teleport ray. Aim at the station by the robot and let go.");
         yield return new WaitUntil(() => Near(rackStand));
 
         Fault f = FirstOpenFault(false);
