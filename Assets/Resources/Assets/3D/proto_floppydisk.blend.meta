@@ -3,7 +3,37 @@ guid: d7d11779a893f9f4bac34163a44d89a9
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Black
+    second: {fileID: 2100000, guid: 8a61c8a6cfb04364bb1112dd4fd1a448, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Black Matte
+    second: {fileID: 2100000, guid: 8728ef987aa7df34398ca0a90ec0386f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Floppy Back
+    second: {fileID: 2100000, guid: 98b44a77c20cadb498365cac5ec1ccf5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Paper Lines
+    second: {fileID: 2100000, guid: 45ce74176ecfcbe46a025e7ad3ffbe9f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Smooth Black Matte
+    second: {fileID: 2100000, guid: 7f2f49a42e347294ab2e584c1f4edcea, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: White Rough
+    second: {fileID: 2100000, guid: 86584cdd069e11349be40818829b5b44, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

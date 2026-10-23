@@ -45,6 +45,7 @@ public class IntakeScreen : MonoBehaviour
             complaintText.text = sb.ToString();
         }
         intakePanel.SetActive(true);
+        TutorialEvents.Raise("RobotAtCounter");
     }
 
     public void Accept()
@@ -63,6 +64,7 @@ public class IntakeScreen : MonoBehaviour
         spawner.ReleaseCurrent();
         spawner.QueueNext();
         RefreshStatus();
+        TutorialEvents.Raise("Accepted");
     }
 
     public void Decline()

@@ -40,6 +40,7 @@ public class Rack : MonoBehaviour
         occupants[index] = null;
         r.Handoff();
         Refresh();
+        TutorialEvents.Raise("Done");
     }
 
     public void DoneFirst()
