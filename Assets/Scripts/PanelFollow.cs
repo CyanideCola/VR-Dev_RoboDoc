@@ -6,6 +6,7 @@ public class PanelFollow : MonoBehaviour
     public float distance = 1.3f;
     public float height = -0.25f;   // below the eye line
     public float speed = 3f;
+    public float side = 0f;
 
     void LateUpdate()
     {

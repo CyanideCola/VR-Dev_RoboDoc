@@ -23,11 +23,15 @@ public class IntakeScreen : MonoBehaviour
         var gp = GameProgress.Instance;
         if (gp)
         {
-            if (moneyText) moneyText.text = "$" + gp.money.ToString("N0");
+            if (moneyText) moneyText.text = Money(gp.money) + " G";
             if (levelText) levelText.text = "LV " + (gp.level + 1);
         }
         if (statusText && rack) statusText.text = rack.Summary();
     }
+
+static string Money(int v) =>
+    v >= 1000000 ? (v / 1000000f).ToString("0.#") + "M" :
+    v >= 10000   ? (v / 1000f).ToString("0.#") + "k" : v.ToString("N0");
 
     public void Show(Robot robot)
     {
@@ -72,6 +76,13 @@ public class IntakeScreen : MonoBehaviour
         if (current == null) return;
         Robot r = current;
         current = null;
+        var gp = GameProgress.Instance;
+        if (gp && gp.running && EnergySystem.Instance)
+        {
+            EnergySystem.Instance.Spend(EnergySystem.Instance.declinePenalty);
+            Notifications.Push("Declined  -" + EnergySystem.Instance.declinePenalty + " energy");
+        }
+        TutorialEvents.Raise("Declined");
         intakePanel.SetActive(false);
         r.state = Robot.State.Leaving;
         spawner.ReleaseCurrent();

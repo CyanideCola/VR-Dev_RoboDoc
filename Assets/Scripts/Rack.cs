@@ -5,6 +5,7 @@ public class Rack : MonoBehaviour
 {
     public Transform[] slots;          // left to right, as the player faces the rack
     public GameObject[] doneButtons;   // one per slot, shown only while that slot is occupied
+    public int OccupiedCount { get { int n = 0; foreach (var o in occupants) if (o != null) n++; return n; } }
 
     Robot[] occupants;
 

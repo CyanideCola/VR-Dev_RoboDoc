@@ -16,14 +16,33 @@ public class GameProgress : MonoBehaviour
     public int level;                 // 0-based
     public int robotsDoneThisLevel;
     public int totalRobotsDone;
-    public int money;
+    public int money = 100;           // gold. Also set this in the Inspector, since the scene's saved value wins.
+
+    public bool running;              // false during the tutorial, set true when it ends
+    public float timeLeft;
 
     void Awake() { Instance = this; }
+
+    void Start() { timeLeft = Current.timeLimit; }
+
+    void Update()
+    {
+        if (!running) return;
+        timeLeft -= Time.deltaTime;
+        if (timeLeft <= 0f) Fail("TIME'S UP");
+    }
 
     public LevelSettings Current { get { return levels[Mathf.Min(level, levels.Length - 1)]; } }
 
     // Levels past the table keep the last entry but add hidden faults and slower work
     public int Overflow { get { return Mathf.Max(0, level - (levels.Length - 1)); } }
+
+    public bool TrySpend(int amount)
+    {
+        if (money < amount) return false;
+        money -= amount;
+        return true;
+    }
 
     public void RobotFinished()
     {
@@ -33,7 +52,19 @@ public class GameProgress : MonoBehaviour
         {
             level++;
             robotsDoneThisLevel = 0;
+            timeLeft = Current.timeLimit;
+            Notifications.Push("LEVEL " + (level + 1));
             Debug.Log("Level " + (level + 1) + " reached");
         }
     }
+
+    public void Fail(string why)
+    {
+        if (!running) return;
+        running = false;
+        Notifications.Push(why);
+        Invoke(nameof(Reload), 4f);
+    }
+
+    void Reload() { SceneTransitionManager.singleton.GoToSceneAsync(1); }
 }

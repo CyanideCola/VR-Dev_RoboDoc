@@ -14,6 +14,7 @@ public class Fault : MonoBehaviour
 
     public bool isFixed { get; private set; }
     float progress;
+    public float Progress01 { get { return workNeeded <= 0f ? 1f : Mathf.Clamp01(progress / workNeeded); } }
 
     void OnEnable() { Refresh(); }
 
