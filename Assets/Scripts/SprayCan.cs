@@ -62,4 +62,11 @@ public class SprayCan : MonoBehaviour
             if (f && hit.Add(f)) f.Work(ToolType.SprayCan, Time.deltaTime);   // seconds of spraying
         }
     }
+    void OnDrawGizmosSelected()
+    {
+        if (!nozzle) return;
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawLine(nozzle.position, nozzle.position + nozzle.forward * range);
+        Gizmos.DrawWireSphere(nozzle.position + nozzle.forward * range, radius);
+    }
 }

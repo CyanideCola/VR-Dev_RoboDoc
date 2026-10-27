@@ -8,6 +8,7 @@ public class ToolHead : MonoBehaviour
     public Transform headPoint;            // the working end of the tool
     public float minSpeed = 1.5f;
     public float hitCooldown = 0.3f;
+    public string hitSoundName = "Hammer";   // name of a Sound in your AudioManager
 
     Vector3 lastPos;
     float speed;
@@ -27,7 +28,13 @@ public class ToolHead : MonoBehaviour
     {
         if (mode != Mode.Hit || speed < minSpeed || Time.time - lastHit < hitCooldown) return;
         var f = other.GetComponentInParent<Fault>();
-        if (f) { f.Work(type, 1f); lastHit = Time.time; }
+        if (f)
+        {
+            f.Work(type, 1f);
+            lastHit = Time.time;
+            if (AudioManager.instance && !string.IsNullOrEmpty(hitSoundName))
+                AudioManager.instance.Play(hitSoundName);
+        }
     }
 
     void OnTriggerStay(Collider other)

@@ -18,38 +18,18 @@ MonoBehaviour:
     tool: 0
     workNeeded: 3
     minLevel: 0
-  - symptom: Hearing is muffled
-    region: 0
-    tool: 2
-    workNeeded: 2
-    minLevel: 0
-  - symptom: Dusty eye sensors
-    region: 0
-    tool: 2
-    workNeeded: 2
-    minLevel: 1
   - symptom: Dented arm
     region: 1
     tool: 0
     workNeeded: 3
     minLevel: 0
-  - symptom: Dusty arm joint
-    region: 1
-    tool: 2
-    workNeeded: 2
-    minLevel: 1
   - symptom: Dented torso
     region: 2
     tool: 0
     workNeeded: 4
     minLevel: 1
-  - symptom: Clogged torso vents
-    region: 2
-    tool: 2
-    workNeeded: 3
-    minLevel: 1
   - symptom: Rusty torso
     region: 2
-    tool: 3
+    tool: 4
     workNeeded: 3
     minLevel: 0

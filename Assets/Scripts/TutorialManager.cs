@@ -12,7 +12,10 @@ public class TutorialManager : MonoBehaviour
     public Transform counterStand;    // teleport station by the computer
     public Transform rackStand;       // teleport station by the rack
     public float reachDistance = 1.5f;
-    public bool alwaysRun;            // tick while testing to replay every time
+    public bool alwaysRun;   
+    public RectTransform panelRect;    // the TutorialPanel's own RectTransform
+    public float padding = 20f;
+    public float minHeight = 70f;         // tick while testing to replay every time
 
     readonly HashSet<string> seen = new HashSet<string>();
     readonly HashSet<ToolType> taught = new HashSet<ToolType>();
@@ -123,5 +126,13 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
-    void Say(string s) { panel.SetActive(true); text.text = s; }
+    void Say(string s)
+    {
+        panel.SetActive(true);
+        text.text = s;
+        if (!panelRect) return;
+        float w = panelRect.sizeDelta.x;
+        float h = text.GetPreferredValues(s, w - padding * 2f, 0f).y + padding * 2f;
+        panelRect.sizeDelta = new Vector2(w, Mathf.Max(h, minHeight));
+    }
 }

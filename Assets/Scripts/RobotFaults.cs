@@ -6,8 +6,8 @@ public class RobotFaults : MonoBehaviour
     public RepairDatabase database;        // optional: drives each spot's symptom, tool and work
     public List<Fault> possibleFaults;     // the fault spots on this robot
     public List<Fault> reported = new List<Fault>();
-    public int payPerReported = 100;
-    public int payPerHidden = 50;
+    public float comboBonus = 0.25f;        // +25% per extra repair completed on the same robot
+    public float hiddenPayFactor = 0.5f;    // hidden repairs pay half
 
     readonly List<Fault> hidden = new List<Fault>();
     readonly List<RepairEntry> used = new List<RepairEntry>();
@@ -60,11 +60,12 @@ public class RobotFaults : MonoBehaviour
 
     public int Evaluate()
     {
-        int rFixed = 0, hFixed = 0;
-        foreach (var f in reported) if (f.isFixed) rFixed++;
-        foreach (var f in hidden) if (f.isFixed) hFixed++;
-        Debug.Log("Reported fixed " + rFixed + "/" + reported.Count +
-                  " | hidden fixed " + hFixed + "/" + hidden.Count);
-        return rFixed * payPerReported + hFixed * payPerHidden;
+        int fixedCount = 0;
+        float total = 0f;
+        foreach (var f in reported) if (f.isFixed) { total += f.pay; fixedCount++; }
+        foreach (var f in hidden) if (f.isFixed) { total += f.pay * hiddenPayFactor; fixedCount++; }
+        if (fixedCount > 1) total *= 1f + comboBonus * (fixedCount - 1);
+        Debug.Log("Repairs fixed: " + fixedCount + " | payout " + Mathf.RoundToInt(total));
+        return Mathf.RoundToInt(total);
     }
 }

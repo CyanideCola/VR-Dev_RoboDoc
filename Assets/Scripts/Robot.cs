@@ -5,7 +5,10 @@ public class Robot : MonoBehaviour
     public enum State { Spawning, WalkingToCounter, WaitingForDecision, Repair, Leaving }
     public State state = State.Spawning;
     public RobotWalker walker;
-    public GameObject poofPrefab;   // optional smoke effect
+    public GameObject poofPrefab;       // optional smoke effect
+    public MoneyPopup popupPrefab;      // floating +$ text
+    public float popupHeight = 1.9f;    // above the robot's feet
+    public string moneySoundName = "Money";
 
     void Awake()
     {
@@ -34,6 +37,8 @@ public class Robot : MonoBehaviour
         var gp = GameProgress.Instance;
         if (gp) { gp.money += pay; gp.RobotFinished(); }
         if (poofPrefab) Instantiate(poofPrefab, transform.position + Vector3.up, Quaternion.identity);
+        if (popupPrefab) Instantiate(popupPrefab, transform.position + Vector3.up * popupHeight, Quaternion.identity).Show(pay);
+        if (pay > 0 && AudioManager.instance) AudioManager.instance.Play(moneySoundName);
         Destroy(gameObject);
     }
 }
