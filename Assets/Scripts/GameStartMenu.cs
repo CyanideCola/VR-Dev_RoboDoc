@@ -9,9 +9,12 @@ public class GameStartMenu : MonoBehaviour
     public GameObject mainMenu;
     public GameObject options;
     public GameObject about;
+    public GameObject leaderboard;
 
     [Header("Main Menu Buttons")]
-    public Button startButton;
+    public Button startButton;         // DEMO
+    public Button challengeButton;
+    public Button leaderboardButton;
     public Button optionButton;
     public Button aboutButton;
     public Button quitButton;
@@ -24,7 +27,9 @@ public class GameStartMenu : MonoBehaviour
         EnableMainMenu();
 
         //Hook events
-        startButton.onClick.AddListener(StartGame);
+        startButton.onClick.AddListener(StartDemo);
+        if (challengeButton) challengeButton.onClick.AddListener(StartChallenge);
+        if (leaderboardButton) leaderboardButton.onClick.AddListener(EnableLeaderboard);
         optionButton.onClick.AddListener(EnableOption);
         aboutButton.onClick.AddListener(EnableAbout);
         quitButton.onClick.AddListener(QuitGame);
@@ -40,10 +45,14 @@ public class GameStartMenu : MonoBehaviour
         Application.Quit();
     }
 
-    public void StartGame()
+    public void StartDemo() { Play(GameMode.Mode.Demo); }
+    public void StartChallenge() { Play(GameMode.Mode.Challenge); }
+
+    void Play(GameMode.Mode mode)
     {
+        GameMode.Current = mode;
         HideAll();
-        SceneTransitionManager.singleton.GoToSceneAsync(1);
+        SceneTransitionManager.singleton.GoToSceneAsync(GameMode.GameScene);
     }
 
     public void HideAll()
@@ -51,24 +60,27 @@ public class GameStartMenu : MonoBehaviour
         mainMenu.SetActive(false);
         options.SetActive(false);
         about.SetActive(false);
+        if (leaderboard) leaderboard.SetActive(false);
     }
 
     public void EnableMainMenu()
     {
+        HideAll();
         mainMenu.SetActive(true);
-        options.SetActive(false);
-        about.SetActive(false);
     }
     public void EnableOption()
     {
-        mainMenu.SetActive(false);
+        HideAll();
         options.SetActive(true);
-        about.SetActive(false);
     }
     public void EnableAbout()
     {
-        mainMenu.SetActive(false);
-        options.SetActive(false);
+        HideAll();
         about.SetActive(true);
+    }
+    public void EnableLeaderboard()
+    {
+        HideAll();
+        leaderboard.SetActive(true);
     }
 }

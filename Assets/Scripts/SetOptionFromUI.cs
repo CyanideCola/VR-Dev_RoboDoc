@@ -1,23 +1,22 @@
-using System.Collections;
 using System.Collections.Generic;
-using Unity.XR.CoreUtils;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
-using UnityEngine.XR.Interaction.Toolkit;
 
 public class SetOptionFromUI : MonoBehaviour
 {
     public Scrollbar volumeSlider;
-    public TMPro.TMP_Dropdown turnDropdown;
-    public SetTurnTypeFromPlayerPref turnTypeFromPlayerPref;
+    [FormerlySerializedAs("turnDropdown")]
+    public TMPro.TMP_Dropdown grabDropdown;   // was the turn option; turning is off in this game
 
     private void Start()
     {
         volumeSlider.onValueChanged.AddListener(SetGlobalVolume);
-        turnDropdown.onValueChanged.AddListener(SetTurnPlayerPref);
 
-        if (PlayerPrefs.HasKey("turn"))
-            turnDropdown.SetValueWithoutNotify(PlayerPrefs.GetInt("turn"));
+        grabDropdown.ClearOptions();
+        grabDropdown.AddOptions(new List<string> { "Hold", "Toggle" });
+        grabDropdown.SetValueWithoutNotify(GrabMode.Toggle ? 1 : 0);
+        grabDropdown.onValueChanged.AddListener(SetGrabPlayerPref);
     }
 
     public void SetGlobalVolume(float value)
@@ -25,9 +24,8 @@ public class SetOptionFromUI : MonoBehaviour
         AudioListener.volume = value;
     }
 
-    public void SetTurnPlayerPref(int value)
+    public void SetGrabPlayerPref(int value)
     {
-        PlayerPrefs.SetInt("turn", value); 
-        turnTypeFromPlayerPref.ApplyPlayerPref();
+        GrabMode.Toggle = value == 1;
     }
 }

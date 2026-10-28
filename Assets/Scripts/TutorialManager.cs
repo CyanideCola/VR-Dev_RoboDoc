@@ -13,7 +13,7 @@ public class TutorialManager : MonoBehaviour
     public Transform shopStand, counterStand, rackStand, nearStand;      // teleport anchors
     public Transform shopTarget, computerTarget, rackTarget;  // what the arrow points at
     public float reachDistance = 1.5f;
-    public bool alwaysRun;                    // tick while testing
+    public float demoEndDelay = 8f;           // seconds on the last Demo message before the menu
 
     readonly HashSet<string> seen = new HashSet<string>();
     readonly HashSet<ToolType> taught = new HashSet<ToolType>();
@@ -23,19 +23,22 @@ public class TutorialManager : MonoBehaviour
     void OnEnable() { TutorialEvents.Raised += OnEvent; }
     void OnDisable() { TutorialEvents.Raised -= OnEvent; }
 
+    // The Demo always runs the full lesson, so every visitor gets it
     void Start()
     {
-        if (!alwaysRun && PlayerPrefs.GetInt("tutorialDone", 0) == 1) { Finish(true); return; }
-        StartCoroutine(Run());
+        if (GameMode.IsChallenge) StartChallenge();
+        else StartCoroutine(Run());
     }
 
-    void Finish(bool spawnFirst)      // starts the real game: timer and energy begin
+    // No lesson: starter tools are waiting at the store and the clock starts now
+    void StartChallenge()
     {
-        running = false;
-        panel.SetActive(false);
-        if (arrow) arrow.SetTarget(null);
-        if (GameProgress.Instance) GameProgress.Instance.running = true;
-        if (spawnFirst) spawner.SpawnNext();
+        var stock = FindAnyObjectByType<ToolStock>();
+        if (stock) stock.GrantStarters();
+        var gp = GameProgress.Instance;
+        if (gp) gp.running = true;
+        spawner.SpawnNext();
+        Say("CHALLENGE: hand back " + (gp ? gp.challengeRobots : 8) + " robots as fast as you can. Your mallet and spray can are at the store. The clock is running!", shopTarget);
     }
 
     void OnEvent(string id)
@@ -52,7 +55,7 @@ public class TutorialManager : MonoBehaviour
         Say("Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
         yield return WaitForAny("TeleportRay");
 
-        Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", null);
+        Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", nearStand);
         yield return new WaitUntil(() => Near(nearStand));
 
         Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.", shopTarget);
@@ -63,7 +66,9 @@ public class TutorialManager : MonoBehaviour
         Say("Now buy the SPRAY CAN, also 50 gold.", shopTarget);
         yield return WaitForAny("Bought:SprayCan");
 
-        Say("Hold the middle finger trigger to pick up the mallet. Let go to put it down.", shopTarget);
+        Say(GrabMode.Toggle
+            ? "Press the middle finger trigger to pick up the mallet. Press it again to put it down."
+            : "Hold the middle finger trigger to pick up the mallet. Let go to put it down.", shopTarget);
         yield return WaitForAny("Grab:Mallet");
 
         Say("Teleport to the station by the computer.", computerTarget);
@@ -87,12 +92,35 @@ public class TutorialManager : MonoBehaviour
         Say("Fixed! Press DONE above the robot. It stops the energy cost and pays you.", rackTarget);
         yield return WaitForAny("Done");
 
-        Say("Your money, level and timer are on the computer. The next patient is already coming.", computerTarget);
+        Say("Your money and the rack list are on the computer. The next patient is already coming.", computerTarget);
         yield return new WaitUntil(() => arrivals >= 2);
 
-        PlayerPrefs.SetInt("tutorialDone", 1);
-        PlayerPrefs.Save();
-        Finish(false);
+        // Part two: energy, declining, the scanner and dismantling. Energy drains from here; the Demo has no clock.
+        var gp = GameProgress.Instance;
+        if (gp) gp.running = true;
+        Say("Your energy is the bar at the bottom right. Every robot in the rack drains it, and at zero the shift ends. Refills are sold in the store. Not every patient is worth it: press DECLINE on this one. Declining costs 10 energy.", computerTarget);
+        yield return WaitForAny("Declined");
+
+        var stock = FindAnyObjectByType<ToolStock>();
+        var scanner = stock ? System.Array.Find(stock.entries, e => e.tool == ToolType.Scanner) : null;
+        if (gp && scanner != null && gp.money < scanner.price) gp.money = scanner.price;   // never stuck for gold here
+        Say("Some faults are hidden and only show up on a scanner. Teleport to the store and buy the SCANNER.", shopTarget);
+        yield return WaitForAny("Bought:Scanner");
+
+        Say("Pick up the scanner and go back to the computer. When the next patient arrives, hold the trigger and point the scanner at it for a second.", computerTarget);
+        yield return WaitForAny("Scanned");
+
+        Say("Hidden faults it finds are added to the rack list, and they pay extra. Now ACCEPT this patient.", computerTarget);
+        yield return WaitForAny("Accepted");
+
+        Say("Teleport to the rack. If a robot isn't worth fixing, press DISMANTLE before you fix anything: it costs 10 energy but gives you a spare part. Robots with a red socket on the head need one: press TAKE PART in the store and touch it to the socket. Press DISMANTLE now.", rackTarget);
+        yield return WaitForAny("Dismantled", "Done");
+
+        if (gp) gp.running = false;
+        Say("That's everything you need. Try the CHALLENGE from the main menu: " + (gp ? gp.challengeRobots : 8) + " robots, fastest time wins. Back to the menu...", null);
+        yield return new WaitForSeconds(demoEndDelay);
+        running = false;
+        if (gp) gp.ToMenu();
     }
 
     // After the tutorial: the first time a robot needs a tool you haven't been shown.
@@ -100,7 +128,11 @@ public class TutorialManager : MonoBehaviour
     {
         yield return null;
         Fault f = FirstOpenFault(true);
-        if (!f) yield break;
+        if (!f)
+        {
+            if (!running) { panel.SetActive(false); if (arrow) arrow.SetTarget(null); }   // e.g. the Challenge's opening message
+            yield break;
+        }
         taught.Add(f.requiredTool);
         Say(RepairText(f), null);
         yield return WaitForAny("Fixed", "Done");
@@ -128,6 +160,8 @@ public class TutorialManager : MonoBehaviour
                 return f.symptom + ": use the MALLET. Swing it hard at the damaged spot, " + Mathf.CeilToInt(f.workNeeded) + " hits. Soft taps don't count.";
             case ToolType.SprayCan:
                 return f.symptom + ": use the SPRAY CAN. Aim at the rust and hold the trigger for " + Mathf.CeilToInt(f.workNeeded) + " seconds.";
+            case ToolType.Part:
+                return f.symptom + ": press TAKE PART in the store, then touch the part to the empty socket. Dismantle robots to get parts.";
             default:
                 return f.symptom + ": use the matching tool on the damaged spot.";
         }

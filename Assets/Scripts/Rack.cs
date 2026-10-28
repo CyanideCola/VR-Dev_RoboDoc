@@ -1,4 +1,5 @@
 using System.Text;
+using TMPro;
 using UnityEngine;
 
 public class Rack : MonoBehaviour
@@ -39,7 +40,8 @@ public class Rack : MonoBehaviour
         Robot r = occupants[index];
         if (r == null) return;
         occupants[index] = null;
-        r.Handoff();
+        if (r.AnyFixed) r.Handoff();
+        else r.Dismantle();
         Refresh();
         TutorialEvents.Raise("Done");
     }
@@ -50,11 +52,20 @@ public class Rack : MonoBehaviour
             if (occupants[i] != null) { Done(i); return; }
     }
 
+    void Update() { Refresh(); }   // labels follow repairs (and over-hits) as they happen
+
     void Refresh()
     {
         if (doneButtons == null) return;
         for (int i = 0; i < doneButtons.Length && i < occupants.Length; i++)
-            if (doneButtons[i]) doneButtons[i].SetActive(occupants[i] != null);
+        {
+            if (!doneButtons[i]) continue;
+            Robot r = occupants[i];
+            doneButtons[i].SetActive(r != null);
+            if (r == null) continue;
+            var label = doneButtons[i].GetComponentInChildren<TMP_Text>(true);
+            if (label) label.text = r.AnyFixed ? "DONE" : "DISMANTLE";
+        }
     }
 
     public string Summary()
@@ -68,8 +79,12 @@ public class Rack : MonoBehaviour
             if (r == null) { sb.Append("empty\n"); continue; }
             var rf = r.GetComponent<RobotFaults>();
             if (rf)
+            {
                 foreach (var f in rf.reported)
                     sb.Append(f.symptom).Append(f.isFixed ? " [fixed]" : "").Append("; ");
+                foreach (var f in rf.Hidden)
+                    if (f.revealed) sb.Append(f.symptom).Append(f.isFixed ? " [fixed]" : " [scanned]").Append("; ");
+            }
             sb.Append('\n');
         }
         return sb.ToString();

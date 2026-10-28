@@ -18,18 +18,28 @@ MonoBehaviour:
     tool: 0
     workNeeded: 3
     minLevel: 0
+    pay: 100
   - symptom: Dented arm
     region: 1
     tool: 0
     workNeeded: 3
     minLevel: 0
+    pay: 100
   - symptom: Dented torso
     region: 2
     tool: 0
     workNeeded: 4
     minLevel: 1
+    pay: 100
   - symptom: Rusty torso
     region: 2
     tool: 4
     workNeeded: 3
     minLevel: 0
+    pay: 100
+  - symptom: Missing antenna
+    region: 0
+    tool: 6
+    workNeeded: 1
+    minLevel: 1
+    pay: 150

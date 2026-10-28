@@ -12,8 +12,11 @@ public class Fault : MonoBehaviour
     public GameObject brokenVisual;
     public GameObject fixedVisual;
     [HideInInspector] public bool reported;
+    [HideInInspector] public bool hidden;    // not on the screen list, and invisible until scanned
 
     public bool isFixed { get; private set; }
+    public bool revealed { get; private set; }
+    public bool Visible { get { return !hidden || revealed; } }
     float progress;
     int extraHits;
     float nextHint;
@@ -35,6 +38,7 @@ public class Fault : MonoBehaviour
     public void Work(ToolType tool, float amount)
     {
         if (tool != requiredTool) return;                       // wrong tool: nothing happens
+        if (!Visible) return;                                   // hidden fault: scan it first
 
         if (owner && owner.state != Robot.State.Repair)         // robot not accepted yet
         {
@@ -56,9 +60,13 @@ public class Fault : MonoBehaviour
         if (progress >= workNeeded) { isFixed = true; extraHits = 0; Refresh(); TutorialEvents.Raise("Fixed"); }
     }
 
+    public void Reveal() { revealed = true; Refresh(); }
+
+    // An unscanned hidden fault looks like a healthy part
     void Refresh()
     {
-        if (brokenVisual) brokenVisual.SetActive(!isFixed);
-        if (fixedVisual) fixedVisual.SetActive(isFixed);
+        bool showBroken = !isFixed && Visible;
+        if (brokenVisual) brokenVisual.SetActive(showBroken);
+        if (fixedVisual) fixedVisual.SetActive(!showBroken);
     }
 }

@@ -9,6 +9,7 @@ public class ToolStock : MonoBehaviour
         public ToolType tool = ToolType.Hammer;
         public GameObject prefab;
         public int price = 50;
+        public bool starter = true;     // starter tools must be owned before the energy refill unlocks
         [HideInInspector] public bool owned;
         [HideInInspector] public GameObject live;
     }
@@ -16,6 +17,9 @@ public class ToolStock : MonoBehaviour
     public Entry[] entries;
     public Transform dropPoint;
     public float floorY = -0.5f, lostDistance = 3f;
+    public GameObject partPrefab;       // spare part, taken from GameProgress.parts
+
+    public bool StartersOwned { get { foreach (var e in entries) if (e.starter && !e.owned) return false; return true; } }
 
     public void BuyByIndex(int i)
     {
@@ -25,6 +29,13 @@ public class ToolStock : MonoBehaviour
         e.owned = true;
         Spawn(e);
         TutorialEvents.Raise("Bought:" + e.tool);
+    }
+
+    // Challenge: the starter tools are already bought, so the clock measures repairs, not shopping
+    public void GrantStarters()
+    {
+        foreach (var e in entries)
+            if (e.starter && !e.owned) { e.owned = true; Spawn(e); }
     }
 
     public void RespawnByIndex(int i)
@@ -39,6 +50,15 @@ public class ToolStock : MonoBehaviour
             Destroy(e.live);
         }
         Spawn(e);
+    }
+
+    public void TakePart()
+    {
+        var gp = GameProgress.Instance;
+        if (!partPrefab || !gp) return;
+        if (gp.parts <= 0) { Notifications.Push("No parts. Dismantle a robot to get some"); return; }
+        gp.parts--;
+        Instantiate(partPrefab, dropPoint.position, dropPoint.rotation);
     }
 
     void Spawn(Entry e) { e.live = Instantiate(e.prefab, dropPoint.position, dropPoint.rotation); }

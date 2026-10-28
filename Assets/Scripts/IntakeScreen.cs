@@ -33,6 +33,11 @@ static string Money(int v) =>
     v >= 1000000 ? (v / 1000000f).ToString("0.#") + "M" :
     v >= 10000   ? (v / 1000f).ToString("0.#") + "k" : v.ToString("N0");
 
+    // Triage tag from the number of reported symptoms (colors from the interface palette)
+    static string Severity(int reported) =>
+        reported >= 3 ? "<color=#FF5A4D>CRITICAL</color>" :
+        reported == 2 ? "<color=#FFC53D>MAJOR</color>" : "<color=#3DDC84>MINOR</color>";
+
     public void Show(Robot robot)
     {
         current = robot;
@@ -44,7 +49,7 @@ static string Money(int v) =>
         else if (rf.reported.Count == 0) Debug.LogWarning("IntakeScreen: no reported faults. Is Possible Faults filled in on RobotFaults?");
         else
         {
-            var sb = new StringBuilder();
+            var sb = new StringBuilder(Severity(rf.reported.Count)).Append('\n');
             foreach (var f in rf.reported) sb.Append("- ").Append(f.symptom).Append('\n');
             complaintText.text = sb.ToString();
         }

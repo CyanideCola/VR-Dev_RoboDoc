@@ -1,1 +1,1 @@
-public enum ToolType { Hammer, Screwdriver, FeatherDuster, Grinder, SprayCan }
+public enum ToolType { Hammer, Screwdriver, FeatherDuster, Grinder, SprayCan, Scanner, Part }

@@ -41,4 +41,25 @@ public class Robot : MonoBehaviour
         if (pay > 0 && AudioManager.instance) AudioManager.instance.Play(moneySoundName);
         Destroy(gameObject);
     }
+
+    public bool AnyFixed { get { var rf = GetComponent<RobotFaults>(); return rf && rf.AnyFixed; } }
+
+    // Scrap for parts instead of paying. Costs energy so it is never cheaper than declining.
+    public void Dismantle()
+    {
+        if (state != State.Repair) return;
+        state = State.Leaving;
+        var gp = GameProgress.Instance;
+        if (gp) gp.parts++;
+        var es = EnergySystem.Instance;
+        if (gp && gp.running && es)
+        {
+            es.Spend(es.dismantlePenalty);
+            Notifications.Push("Dismantled  +1 part  -" + es.dismantlePenalty + " energy");
+        }
+        else Notifications.Push("Dismantled  +1 part");
+        if (poofPrefab) Instantiate(poofPrefab, transform.position + Vector3.up, Quaternion.identity);
+        TutorialEvents.Raise("Dismantled");
+        Destroy(gameObject);
+    }
 }

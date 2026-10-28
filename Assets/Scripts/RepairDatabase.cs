@@ -17,7 +17,7 @@ public class RepairDatabase : ScriptableObject
     };
 
     // Picks a random entry for this region and level. Avoids repeats on the same robot when possible.
-    public RepairEntry Roll(RepairRegion region, ToolType tool, int level, List<RepairEntry> alreadyUsed)
+    public RepairEntry Roll(RepairRegion region, ToolType tool, int level, List<RepairEntry> alreadyUsed, System.Func<int, int, int> range = null)
     {
         var options = new List<RepairEntry>();
         foreach (var r in repairs)
@@ -28,6 +28,6 @@ public class RepairDatabase : ScriptableObject
                 if (r.region == region && r.tool == tool && r.minLevel <= level) options.Add(r);
 
         if (options.Count == 0) return null;
-        return options[Random.Range(0, options.Count)];
+        return options[range != null ? range(0, options.Count) : Random.Range(0, options.Count)];
     }
 }

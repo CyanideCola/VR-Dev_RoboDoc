@@ -11,6 +11,10 @@ public class RobotFaults : MonoBehaviour
 
     readonly List<Fault> hidden = new List<Fault>();
     readonly List<RepairEntry> used = new List<RepairEntry>();
+    System.Random rng;                      // Challenge only: the same robots for every player
+
+    // Random.Range, or the Challenge's seeded generator
+    int Range(int min, int maxExclusive) { return rng != null ? rng.Next(min, maxExclusive) : Random.Range(min, maxExclusive); }
 
     void Awake()
     {
@@ -23,40 +27,70 @@ public class RobotFaults : MonoBehaviour
         var gp = GameProgress.Instance;
         if (gp)
         {
+            int index = gp.NextRobotIndex();
             var L = gp.Current;
             int extra = gp.Overflow;
             level = gp.level;
+            if (GameMode.IsChallenge)
+            {
+                // Difficulty by spawn order, not by how fast the player is going
+                level = gp.ChallengeLevel(index);
+                L = gp.levels[Mathf.Min(level, gp.levels.Length - 1)];
+                extra = Mathf.Max(0, level - (gp.levels.Length - 1));
+                rng = new System.Random(gp.challengeSeed * 1000 + index);
+            }
             rMin = L.minReported; rMax = L.maxReported;
             hMin = L.minHidden;   hMax = L.maxHidden + extra;
             mult = L.workMultiplier + 0.1f * extra;
         }
 
-        int reportedCount = Mathf.Min(Random.Range(rMin, rMax + 1), pool.Count);
-        int hiddenCount = Mathf.Min(Random.Range(hMin, hMax + 1), pool.Count - reportedCount);
+        int reportedCount = Mathf.Min(Range(rMin, rMax + 1), pool.Count);
+        int hiddenCount = Mathf.Min(Range(hMin, hMax + 1), pool.Count - reportedCount);
         if (pool.Count < rMax + hMax) Debug.LogWarning("RobotFaults: only " + pool.Count + " fault spots. Add more to the prefab.");
 
         for (int i = 0; i < reportedCount; i++)
         {
-            var f = Pick(pool, mult, level);
+            var f = Pick(pool, mult, level, false);
             f.reported = true;
             reported.Add(f);
         }
-        for (int i = 0; i < hiddenCount; i++) hidden.Add(Pick(pool, mult, level));
+        for (int i = 0; i < hiddenCount; i++) hidden.Add(Pick(pool, mult, level, true));
     }
 
-    Fault Pick(List<Fault> pool, float mult, int level)
+    public IReadOnlyList<Fault> Hidden { get { return hidden; } }
+
+    // Scanner: shows every hidden fault on this robot. Returns how many were new.
+    public int RevealHidden()
     {
-        int i = Random.Range(0, pool.Count);
+        int n = 0;
+        foreach (var f in hidden) if (!f.revealed) { f.Reveal(); n++; }
+        return n;
+    }
+
+    Fault Pick(List<Fault> pool, float mult, int level, bool isHidden)
+    {
+        int i = Range(0, pool.Count);
         var f = pool[i];
         pool.RemoveAt(i);
+        f.hidden = isHidden;   // set before SetActive, so OnEnable draws it right
         if (database)
         {
-            var e = database.Roll(f.region, f.requiredTool, level, used);
+            var e = database.Roll(f.region, f.requiredTool, level, used, Range);
             if (e != null) { f.Apply(e); used.Add(e); }
         }
         f.gameObject.SetActive(true);
         f.workNeeded *= mult;
         return f;
+    }
+
+    public bool AnyFixed
+    {
+        get
+        {
+            foreach (var f in reported) if (f.isFixed) return true;
+            foreach (var f in hidden) if (f.isFixed) return true;
+            return false;
+        }
     }
 
     public int Evaluate()
