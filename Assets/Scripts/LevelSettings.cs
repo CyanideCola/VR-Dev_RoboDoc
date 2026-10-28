@@ -9,4 +9,5 @@ public class LevelSettings
     public int minHidden = 0;         // extra faults NOT shown on the screen
     public int maxHidden = 0;
     public float workMultiplier = 1f; // scales hits/seconds needed per fault
+    public float timeLimit = 180f;
 }

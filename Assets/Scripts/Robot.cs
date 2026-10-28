@@ -37,7 +37,7 @@ public class Robot : MonoBehaviour
         var gp = GameProgress.Instance;
         if (gp) { gp.money += pay; gp.RobotFinished(); }
         if (poofPrefab) Instantiate(poofPrefab, transform.position + Vector3.up, Quaternion.identity);
-        if (popupPrefab) Instantiate(popupPrefab, transform.position + Vector3.up * popupHeight, Quaternion.identity).Show(pay);
+        Notifications.Push("+" + pay + " G");
         if (pay > 0 && AudioManager.instance) AudioManager.instance.Play(moneySoundName);
         Destroy(gameObject);
     }

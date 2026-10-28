@@ -6,38 +6,42 @@ using UnityEngine;
 public class TutorialManager : MonoBehaviour
 {
     public Spawner spawner;
-    public GameObject panel;          // the tutorial canvas
-    public TMP_Text text;
-    public Transform head;            // XR camera
-    public Transform counterStand;    // teleport station by the computer
-    public Transform rackStand;       // teleport station by the rack
+    public GameObject panel;                  // fixed-size panel
+    public TMP_Text text;                     // Auto Size on
+    public ObjectiveArrow arrow;              // optional
+    public Transform head;                    // XR camera
+    public Transform shopStand, counterStand, rackStand;      // teleport anchors
+    public Transform shopTarget, computerTarget, rackTarget;  // what the arrow points at
     public float reachDistance = 1.5f;
-    public bool alwaysRun;   
-    public RectTransform panelRect;    // the TutorialPanel's own RectTransform
-    public float padding = 20f;
-    public float minHeight = 70f;         // tick while testing to replay every time
+    public bool alwaysRun;                    // tick while testing
 
     readonly HashSet<string> seen = new HashSet<string>();
     readonly HashSet<ToolType> taught = new HashSet<ToolType>();
     bool running;
+    int arrivals;
 
     void OnEnable() { TutorialEvents.Raised += OnEvent; }
     void OnDisable() { TutorialEvents.Raised -= OnEvent; }
 
     void Start()
     {
-        if (!alwaysRun && PlayerPrefs.GetInt("tutorialDone", 0) == 1)
-        {
-            panel.SetActive(false);
-            spawner.SpawnNext();
-            return;
-        }
+        if (!alwaysRun && PlayerPrefs.GetInt("tutorialDone", 0) == 1) { Finish(true); return; }
         StartCoroutine(Run());
+    }
+
+    void Finish(bool spawnFirst)      // starts the real game: timer and energy begin
+    {
+        running = false;
+        panel.SetActive(false);
+        if (arrow) arrow.SetTarget(null);
+        if (GameProgress.Instance) GameProgress.Instance.running = true;
+        if (spawnFirst) spawner.SpawnNext();
     }
 
     void OnEvent(string id)
     {
         if (id == "Accepted") seen.Clear();
+        if (id == "RobotAtCounter") arrivals++;
         seen.Add(id);
         if (id == "Accepted" && !running) StartCoroutine(Hint());
     }
@@ -45,56 +49,71 @@ public class TutorialManager : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        Say("Welcome to RoboDoc!\nSqueeze the grip to pick up the mallet. Let go to put it down.");
+        Say("Welcome to RoboDoc! Push the right thumbstick up to show the teleport ray.", null);
+        yield return WaitForAny("TeleportRay");
+
+        Say("Aim the ray at the glowing station by the shop and let go.", shopTarget);
+        yield return new WaitUntil(() => Near(shopStand));
+
+        Say("Buy the MALLET for 50 gold: point at the button and pull the trigger.", shopTarget);
+        yield return WaitForAny("Bought:Hammer");
+        Say("Now buy the SPRAY CAN, also 50 gold.", shopTarget);
+        yield return WaitForAny("Bought:SprayCan");
+
+        Say("Squeeze the grip to pick up the mallet. Let go to put it down.", shopTarget);
         yield return WaitForAny("Grab:Mallet");
 
-        Say("A patient is on its way.");
+        Say("Teleport to the station by the computer.", computerTarget);
+        yield return new WaitUntil(() => Near(counterStand));
+
+        Say("A patient is on its way.", computerTarget);
         spawner.SpawnNext();
         yield return WaitForAny("RobotAtCounter");
 
-        Say("Read the complaint on the screen. Point at ACCEPT and pull the trigger.");
+        Say("Read the complaint, then point at ACCEPT and pull the trigger.", computerTarget);
         yield return WaitForAny("Accepted");
 
-        Say("The robot went into the first free rack slot. The screen lists all four slots. When they are full you cannot accept more.");
-        yield return new WaitForSeconds(7f);
-
-        Say("Teleport to the station by the rack. Push the right thumbstick up to show the teleport ray. Aim at the station by the robot and let go.");
+        Say("The robot is in the rack. It costs energy until you press DONE. Teleport to the rack station.", rackTarget);
         yield return new WaitUntil(() => Near(rackStand));
 
         Fault f = FirstOpenFault(false);
-        if (f) { taught.Add(f.requiredTool); Say("Find the damaged spot on the robot.\n" + RepairText(f)); }
-        else Say("Repair the damage on the robot.");
+        if (f) { taught.Add(f.requiredTool); Say(RepairText(f), rackTarget); }
+        else Say("Repair the damage on the robot.", rackTarget);
         yield return WaitForAny("Fixed", "Done");
 
-        Say("Fixed! Press DONE above the robot to hand it back. You are paid for every repair you finish.");
+        Say("Fixed! Press DONE above the robot. It stops the energy cost and pays you.", rackTarget);
         yield return WaitForAny("Done");
 
-        Say("Your money and level are on the computer. The next patient arrives about 8 seconds after you accept or decline, so keep up.");
-        yield return new WaitForSeconds(8f);
+        Say("Your money, level and timer are on the computer. The next patient is already coming.", computerTarget);
+        yield return new WaitUntil(() => arrivals >= 2);
 
         PlayerPrefs.SetInt("tutorialDone", 1);
         PlayerPrefs.Save();
-        running = false;
-        panel.SetActive(false);
+        Finish(false);
     }
 
-    // After the tutorial: the first time a robot needs a tool you have not been shown, show a hint.
+    // After the tutorial: the first time a robot needs a tool you haven't been shown.
     IEnumerator Hint()
     {
         yield return null;
         Fault f = FirstOpenFault(true);
         if (!f) yield break;
         taught.Add(f.requiredTool);
-        Say(RepairText(f));
-        yield return new WaitForSeconds(10f);
+        Say(RepairText(f), null);
+        yield return WaitForAny("Fixed", "Done");
         if (!running) panel.SetActive(false);
     }
 
+    // Only robots that are accepted (in the rack), never the one waiting at the counter.
     Fault FirstOpenFault(bool onlyUntaught)
     {
         foreach (var rf in FindObjectsByType<RobotFaults>(FindObjectsSortMode.None))
+        {
+            var robot = rf.GetComponent<Robot>();
+            if (!robot || robot.state != Robot.State.Repair) continue;
             foreach (var f in rf.reported)
                 if (f && !f.isFixed && (!onlyUntaught || !taught.Contains(f.requiredTool))) return f;
+        }
         return null;
     }
 
@@ -103,11 +122,11 @@ public class TutorialManager : MonoBehaviour
         switch (f.requiredTool)
         {
             case ToolType.Hammer:
-                return "Dents need the MALLET. Swing it hard at the damaged spot, " + Mathf.CeilToInt(f.workNeeded) + " hits. Soft taps do not count.";
+                return f.symptom + ": use the MALLET. Swing it hard at the damaged spot, " + Mathf.CeilToInt(f.workNeeded) + " hits. Soft taps don't count.";
             case ToolType.SprayCan:
-                return "Rust needs the SPRAY CAN. Aim it at the rust and hold the trigger for " + Mathf.CeilToInt(f.workNeeded) + " seconds.";
+                return f.symptom + ": use the SPRAY CAN. Aim at the rust and hold the trigger for " + Mathf.CeilToInt(f.workNeeded) + " seconds.";
             default:
-                return "Use the matching tool on the damaged spot.";
+                return f.symptom + ": use the matching tool on the damaged spot.";
         }
     }
 
@@ -126,13 +145,10 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
-    void Say(string s)
+    void Say(string s, Transform target)
     {
         panel.SetActive(true);
         text.text = s;
-        if (!panelRect) return;
-        float w = panelRect.sizeDelta.x;
-        float h = text.GetPreferredValues(s, w - padding * 2f, 0f).y + padding * 2f;
-        panelRect.sizeDelta = new Vector2(w, Mathf.Max(h, minHeight));
+        if (arrow) arrow.SetTarget(target);
     }
 }

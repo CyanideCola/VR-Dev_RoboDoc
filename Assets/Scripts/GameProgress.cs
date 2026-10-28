@@ -65,6 +65,10 @@ public class GameProgress : MonoBehaviour
         Notifications.Push(why);
         Invoke(nameof(Reload), 4f);
     }
-
-    void Reload() { SceneTransitionManager.singleton.GoToSceneAsync(1); }
+    
+    void Reload()
+    {
+        if (SceneTransitionManager.singleton) SceneTransitionManager.singleton.GoToSceneAsync(1);
+        else UnityEngine.SceneManagement.SceneManager.LoadScene(1);
+    }
 }

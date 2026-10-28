@@ -8,14 +8,20 @@ public class Fault : MonoBehaviour
     public ToolType requiredTool = ToolType.Hammer;
     public float workNeeded = 3f;
     public int pay = 100;
+    public int overHitGrace = 2;         // extra hammer hits allowed after it is fixed
     public GameObject brokenVisual;
     public GameObject fixedVisual;
     [HideInInspector] public bool reported;
 
     public bool isFixed { get; private set; }
     float progress;
+    int extraHits;
+    float nextHint;
+    Robot owner;
+
     public float Progress01 { get { return workNeeded <= 0f ? 1f : Mathf.Clamp01(progress / workNeeded); } }
 
+    void Awake() { owner = GetComponentInParent<Robot>(); }
     void OnEnable() { Refresh(); }
 
     public void Apply(RepairEntry e)
@@ -28,9 +34,26 @@ public class Fault : MonoBehaviour
 
     public void Work(ToolType tool, float amount)
     {
-        if (isFixed || tool != requiredTool) return;   // wrong tool: nothing happens
+        if (tool != requiredTool) return;                       // wrong tool: nothing happens
+
+        if (owner && owner.state != Robot.State.Repair)         // robot not accepted yet
+        {
+            if (Time.time > nextHint) { Notifications.Push("Accept the patient first"); nextHint = Time.time + 2f; }
+            return;
+        }
+
+        if (isFixed)
+        {
+            if (tool == ToolType.Hammer && ++extraHits > overHitGrace)   // over-hit: it breaks again
+            {
+                isFixed = false; progress = 0f; extraHits = 0; Refresh();
+                Notifications.Push("Over-hit! The damage is back");
+            }
+            return;
+        }
+
         progress += amount;
-        if (progress >= workNeeded) { isFixed = true; Refresh(); TutorialEvents.Raise("Fixed"); }
+        if (progress >= workNeeded) { isFixed = true; extraHits = 0; Refresh(); TutorialEvents.Raise("Fixed"); }
     }
 
     void Refresh()

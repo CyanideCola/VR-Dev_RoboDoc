@@ -33,6 +33,7 @@ public class RobotFaults : MonoBehaviour
 
         int reportedCount = Mathf.Min(Random.Range(rMin, rMax + 1), pool.Count);
         int hiddenCount = Mathf.Min(Random.Range(hMin, hMax + 1), pool.Count - reportedCount);
+        if (pool.Count < rMax + hMax) Debug.LogWarning("RobotFaults: only " + pool.Count + " fault spots. Add more to the prefab.");
 
         for (int i = 0; i < reportedCount; i++)
         {
