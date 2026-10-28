@@ -10,7 +10,7 @@ public class TutorialManager : MonoBehaviour
     public TMP_Text text;                     // Auto Size on
     public ObjectiveArrow arrow;              // optional
     public Transform head;                    // XR camera
-    public Transform shopStand, counterStand, rackStand;      // teleport anchors
+    public Transform shopStand, counterStand, rackStand, nearStand;      // teleport anchors
     public Transform shopTarget, computerTarget, rackTarget;  // what the arrow points at
     public float reachDistance = 1.5f;
     public bool alwaysRun;                    // tick while testing
@@ -49,18 +49,21 @@ public class TutorialManager : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        Say("Welcome to RoboDoc! Push the right thumbstick up to show the teleport ray.", null);
+        Say("Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
         yield return WaitForAny("TeleportRay");
 
-        Say("Aim the ray at the glowing station by the shop and let go.", shopTarget);
+        Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", null);
+        yield return new WaitUntil(() => Near(nearStand));
+
+        Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.", shopTarget);
         yield return new WaitUntil(() => Near(shopStand));
 
-        Say("Buy the MALLET for 50 gold: point at the button and pull the trigger.", shopTarget);
+        Say("To your right is the shop. Buy the MALLET for 50 gold: point at the button and pull the trigger (index finger).", shopTarget);
         yield return WaitForAny("Bought:Hammer");
         Say("Now buy the SPRAY CAN, also 50 gold.", shopTarget);
         yield return WaitForAny("Bought:SprayCan");
 
-        Say("Squeeze the grip to pick up the mallet. Let go to put it down.", shopTarget);
+        Say("Hold the middle finger trigger to pick up the mallet. Let go to put it down.", shopTarget);
         yield return WaitForAny("Grab:Mallet");
 
         Say("Teleport to the station by the computer.", computerTarget);
