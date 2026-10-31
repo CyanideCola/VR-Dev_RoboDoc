@@ -41,8 +41,13 @@ public class RobotFaults : MonoBehaviour
             }
             rMin = L.minReported; rMax = L.maxReported;
             hMin = L.minHidden;   hMax = L.maxHidden + extra;
+            // The Demo's scanner lesson needs something to find: every robot after the first carries one hidden fault
+            if (GameMode.Current == GameMode.Mode.Demo && index >= 1) { hMin = Mathf.Max(hMin, 1); hMax = Mathf.Max(hMax, 1); }
             mult = L.workMultiplier + 0.1f * extra;
         }
+
+        // A spot stays empty until the database unlocks it at this level (the missing antenna starts at level 2)
+        if (database) pool.RemoveAll(f => database.Locked(f.region, f.requiredTool, level));
 
         int reportedCount = Mathf.Min(Range(rMin, rMax + 1), pool.Count);
         int hiddenCount = Mathf.Min(Range(hMin, hMax + 1), pool.Count - reportedCount);
@@ -58,6 +63,12 @@ public class RobotFaults : MonoBehaviour
     }
 
     public IReadOnlyList<Fault> Hidden { get { return hidden; } }
+
+    // Hidden faults the scanner never found. Reported when the robot is handed back.
+    public int HiddenNotFound
+    {
+        get { int n = 0; foreach (var f in hidden) if (f && !f.revealed) n++; return n; }
+    }
 
     // Scanner: shows every hidden fault on this robot. Returns how many were new.
     public int RevealHidden()

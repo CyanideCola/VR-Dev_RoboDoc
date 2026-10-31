@@ -38,6 +38,9 @@ public class Robot : MonoBehaviour
         if (gp) { gp.money += pay; gp.RobotFinished(); }
         if (poofPrefab) Instantiate(poofPrefab, transform.position + Vector3.up, Quaternion.identity);
         Notifications.Push("+" + pay + " G");
+        int missed = rf ? rf.HiddenNotFound : 0;
+        if (missed > 0)   // nothing is said when the scanner found them all, or there were none
+            Notifications.Push("<color=#FFC53D>" + missed + (missed == 1 ? " hidden fault" : " hidden faults") + " not found</color>");
         if (pay > 0 && AudioManager.instance) AudioManager.instance.Play(moneySoundName);
         Destroy(gameObject);
     }

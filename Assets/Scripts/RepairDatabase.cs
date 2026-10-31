@@ -16,6 +16,19 @@ public class RepairDatabase : ScriptableObject
         new RepairEntry { symptom = "Clogged torso vents",region = RepairRegion.Torso, tool = ToolType.FeatherDuster, workNeeded = 3f, minLevel = 1 },
     };
 
+    // True when the database lists repairs for this kind of spot but none of them is unlocked yet at this level
+    public bool Locked(RepairRegion region, ToolType tool, int level)
+    {
+        bool listed = false;
+        foreach (var r in repairs)
+        {
+            if (r.region != region || r.tool != tool) continue;
+            if (r.minLevel <= level) return false;
+            listed = true;
+        }
+        return listed;
+    }
+
     // Picks a random entry for this region and level. Avoids repeats on the same robot when possible.
     public RepairEntry Roll(RepairRegion region, ToolType tool, int level, List<RepairEntry> alreadyUsed, System.Func<int, int, int> range = null)
     {

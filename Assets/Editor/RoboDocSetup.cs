@@ -238,6 +238,78 @@ public static class RoboDocSetup
         t.fontSizeMax = 100;
     }
 
+    // ---------- scene fade ----------
+
+    const string FaderPrefab = Prefabs + "Fader Screen.prefab";
+    const string ManagerPrefab = Prefabs + "Transition Manager.prefab";
+
+    [MenuItem("Tools/RoboDoc/Fix Scene Fade")]
+    public static void RunFixFade()
+    {
+        var mat = FadeMaterial();
+        FixFaderPrefab(mat);
+
+        var menu = EditorSceneManager.OpenScene(MenuScenePath);
+        var menuFader = Object.FindAnyObjectByType<FadeScreen>(FindObjectsInactive.Include);
+        // The start scene had swapped in an opaque sample material, so the alpha never did anything
+        var prop = new SerializedObject(menuFader.GetComponent<MeshRenderer>()).FindProperty("m_Materials.Array.data[0]");
+        PrefabUtility.RevertPropertyOverride(prop, InteractionMode.AutomatedAction);
+        var menuManager = Object.FindAnyObjectByType<SceneTransitionManager>(FindObjectsInactive.Include);
+        Debug.Log("RoboDocSetup: menu fader material=" + menuFader.GetComponent<MeshRenderer>().sharedMaterial.name
+            + " manager.fadeScreen=" + (menuManager.fadeScreen ? menuManager.fadeScreen.name : "null")
+            + " camera near=" + Camera.main.nearClipPlane);
+        EditorSceneManager.MarkSceneDirty(menu);
+        EditorSceneManager.SaveScene(menu);
+
+        var game = EditorSceneManager.OpenScene(ScenePath);
+        foreach (var old in Object.FindObjectsByType<FadeScreen>(FindObjectsInactive.Include, FindObjectsSortMode.None)) Object.DestroyImmediate(old.gameObject);
+        foreach (var old in Object.FindObjectsByType<SceneTransitionManager>(FindObjectsInactive.Include, FindObjectsSortMode.None)) Object.DestroyImmediate(old.gameObject);
+
+        var cam = Camera.main.transform;
+        var fader = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(FaderPrefab), cam);
+        fader.transform.localPosition = new Vector3(0, 0, 0.015f);
+        fader.transform.localRotation = Quaternion.identity;
+        fader.transform.localScale = Vector3.one;
+
+        var manager = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(ManagerPrefab));
+        var so = new SerializedObject(manager.GetComponent<SceneTransitionManager>());
+        so.FindProperty("fadeScreen").objectReferenceValue = fader.GetComponent<FadeScreen>();
+        so.ApplyModifiedProperties();
+        Debug.Log("RoboDocSetup: game fader parent=" + fader.transform.parent.name + " manager.fadeScreen=" + manager.GetComponent<SceneTransitionManager>().fadeScreen.name
+            + " camera near=" + Camera.main.nearClipPlane);
+        EditorSceneManager.MarkSceneDirty(game);
+        EditorSceneManager.SaveScene(game);
+        AssetDatabase.SaveAssets();
+    }
+
+    static Material FadeMaterial()
+    {
+        const string path = Mats + "Fade Screen.mat";
+        var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+        var shader = Shader.Find("RoboDoc/Fade Unlit");
+        if (!shader) throw new System.Exception("Shader RoboDoc/Fade Unlit not found");
+        if (!m) { m = new Material(shader); AssetDatabase.CreateAsset(m, path); }
+        m.shader = shader;
+        m.SetColor("_Color", new Color(0, 0, 0, 0));
+        EditorUtility.SetDirty(m);
+        return m;
+    }
+
+    static void FixFaderPrefab(Material mat)
+    {
+        var root = PrefabUtility.LoadPrefabContents(FaderPrefab);
+        var rend = root.GetComponent<MeshRenderer>();
+        rend.sharedMaterial = mat;
+        rend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;   // a quad on the head must not cast a shadow into the room
+        rend.receiveShadows = false;
+        var fade = root.GetComponent<FadeScreen>();
+        fade.colorPropertyName = "_Color";
+        fade.fadeColor = new Color(0, 0, 0, 0);
+        fade.fadeDuration = 1f;
+        PrefabUtility.SaveAsPrefabAsset(root, FaderPrefab);
+        PrefabUtility.UnloadPrefabContents(root);
+    }
+
     // ---------- HUD ----------
 
     // Energy bar and timer at the bottom right of the view, mirroring the notification feed on the left
@@ -368,7 +440,7 @@ public static class RoboDocSetup
     }
 
     // A 64 x 64 white sprite with the given shape, imported as a single sprite
-    static Sprite TexSprite(string path, System.Func<int, int, int, bool> inside)
+    static Sprite TexSprite(string path, System.Func<int, int, int, bool> inside, Vector4 border = default(Vector4))
     {
         if (!System.IO.File.Exists(path))
         {
@@ -381,11 +453,12 @@ public static class RoboDocSetup
             AssetDatabase.ImportAsset(path);
         }
         var imp = (TextureImporter)AssetImporter.GetAtPath(path);
-        if (imp.textureType != TextureImporterType.Sprite || imp.spriteImportMode != SpriteImportMode.Single)
+        if (imp.textureType != TextureImporterType.Sprite || imp.spriteImportMode != SpriteImportMode.Single || imp.spriteBorder != border)
         {
             imp.textureType = TextureImporterType.Sprite;
             imp.spriteImportMode = SpriteImportMode.Single;
             imp.alphaIsTransparency = true;
+            imp.spriteBorder = border;   // left, bottom, right, top: the part that is not stretched
             imp.SaveAndReimport();
         }
         return AssetDatabase.LoadAssetAtPath<Sprite>(path);
@@ -409,21 +482,54 @@ public static class RoboDocSetup
 
     // ---------- prefabs ----------
 
+    [MenuItem("Tools/RoboDoc/Build Scanner Screen")]
+    public static void RunScannerScreen()
+    {
+        BuildScanner();
+        AssetDatabase.SaveAssets();
+        Debug.Log("RoboDocSetup: scanner screen done");
+    }
+
+    static T GetOrAdd<T>(GameObject go) where T : Component
+    {
+        var c = go.GetComponent<T>();
+        return c ? c : go.AddComponent<T>();
+    }
+
+    // Placeholder scanner until the real model arrives: a wide slab with a pistol grip, the lens at the
+    // front and the screen on the back. The model only has to keep a Tip, a ScanCamera at the lens, an Attach
+    // point for the hand, and a ScannerScreen prefab on its display (the canvas faces the player, so +Z points away).
+    // Edited in place when it exists, so the ToolStock entry in the scene keeps pointing at it.
     static GameObject BuildScanner()
     {
-        var root = new GameObject("Scanner");
-        var box = root.AddComponent<BoxCollider>();
-        box.size = new Vector3(0.05f, 0.04f, 0.16f);
-        root.AddComponent<Rigidbody>();
-        var grab = root.AddComponent<XRGrabInteractable>();
-        grab.useDynamicAttach = true;
+        var screenPrefab = BuildScannerScreen();
+        const string path = Prefabs + "Scanner.prefab";
+        bool exists = System.IO.File.Exists(path);
+        var root = exists ? PrefabUtility.LoadPrefabContents(path) : new GameObject("Scanner");
+        for (int i = root.transform.childCount - 1; i >= 0; i--) Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
+        foreach (var c in root.GetComponents<Collider>()) Object.DestroyImmediate(c);
 
-        Visual(PrimitiveType.Cube, "Body", root.transform, Vector3.zero, new Vector3(0.05f, 0.04f, 0.16f), Mat("Scanner Body", Hex("2B3A5C")));
-        Visual(PrimitiveType.Cube, "Emitter", root.transform, new Vector3(0, 0, 0.085f), new Vector3(0.03f, 0.02f, 0.01f), Mat("Scanner Emitter", Cyan, true));
+        root.AddComponent<BoxCollider>().size = new Vector3(0.22f, 0.11f, 0.06f);
+        GetOrAdd<Rigidbody>(root);
+        var grab = GetOrAdd<XRGrabInteractable>(root);
+        grab.colliders.Clear();             // XRI fills it in itself; a stale entry would make the scanner ungrabbable
+        grab.useDynamicAttach = false;      // held by the grip, so the screen faces the player
+
+        Visual(PrimitiveType.Cube, "Body", root.transform, Vector3.zero, new Vector3(0.22f, 0.11f, 0.06f), Mat("Scanner Body", Hex("E8EEF5")));
+        Visual(PrimitiveType.Cube, "Bezel", root.transform, new Vector3(0, 0, -0.031f), new Vector3(0.2f, 0.1f, 0.002f), Mat("Scanner Bezel", Hex("0A0A0A")));
+        var grip = Visual(PrimitiveType.Cube, "Grip", root.transform, new Vector3(0, -0.095f, 0), new Vector3(0.04f, 0.09f, 0.045f), Mat("Scanner Grip", Hex("2B3A5C")));
+        grip.AddComponent<BoxCollider>();
+        var lens = Visual(PrimitiveType.Cylinder, "Lens", root.transform, new Vector3(0, 0, 0.031f), new Vector3(0.05f, 0.002f, 0.05f), Mat("Scanner Emitter", Cyan, true));
+        lens.transform.localRotation = Quaternion.Euler(90, 0, 0);
+
+        var attach = new GameObject("Attach").transform;
+        attach.SetParent(root.transform, false);
+        attach.localPosition = new Vector3(0, -0.095f, 0);
+        grab.attachTransform = attach;
 
         var tip = new GameObject("Tip").transform;
         tip.SetParent(root.transform, false);
-        tip.localPosition = new Vector3(0, 0, 0.09f);
+        tip.localPosition = new Vector3(0, 0, 0.034f);
         var beam = tip.gameObject.AddComponent<LineRenderer>();
         beam.positionCount = 2;
         beam.widthMultiplier = 0.004f;
@@ -431,11 +537,159 @@ public static class RoboDocSetup
         beam.sharedMaterial = Mat("Scanner Beam", Cyan, true);
         beam.enabled = false;
 
-        var s = root.AddComponent<Scanner>();
+        // The screen's picture. Drawn by the ScannerScreen a few times a second while the scanner is held.
+        var camGo = new GameObject("ScanCamera");
+        camGo.transform.SetParent(root.transform, false);
+        camGo.transform.localPosition = new Vector3(0, 0, 0.034f);
+        var cam = camGo.AddComponent<Camera>();
+        cam.clearFlags = CameraClearFlags.SolidColor;
+        cam.backgroundColor = Ink;
+        cam.fieldOfView = 40f;
+        cam.nearClipPlane = 0.03f;
+        cam.farClipPlane = 2.5f;
+        cam.allowMSAA = false;
+        cam.allowHDR = false;
+        cam.stereoTargetEye = StereoTargetEyeMask.None;
+        cam.enabled = false;
+
+        var screen = (GameObject)PrefabUtility.InstantiatePrefab(screenPrefab, root.transform);
+        screen.transform.localPosition = new Vector3(0, 0, -0.0325f);
+        screen.transform.localRotation = Quaternion.identity;
+
+        var s = GetOrAdd<Scanner>(root);
         s.tip = tip;
         s.beam = beam;
-        root.AddComponent<TutorialGrabEvent>().id = "Scanner";
-        return Save(root, "Scanner");
+        s.scanCamera = cam;
+        s.range = 2f;
+        s.scanTime = 0.8f;
+        GetOrAdd<TutorialGrabEvent>(root).id = "Scanner";
+
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        if (exists) PrefabUtility.UnloadPrefabContents(root); else Object.DestroyImmediate(root);
+        return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+    }
+
+    // ---------- scanner screen ----------
+
+    // Corner brackets: 2 px lines with 14 px arms and 16 px slices, so any size keeps the same corners
+    static Sprite FrameSprite()
+    {
+        return TexSprite("Assets/Textures/ScannerFrame.png", (x, y, n) =>
+        {
+            bool onH = y < 2 || y >= n - 2, onV = x < 2 || x >= n - 2;
+            bool nearX = x < 16 || x >= n - 16, nearY = y < 16 || y >= n - 16;
+            return (onH && nearX) || (onV && nearY);
+        }, new Vector4(16, 16, 16, 16));
+    }
+
+    static Sprite WhiteSprite() { return TexSprite("Assets/Textures/White.png", (x, y, n) => true); }
+
+    // The display: 400 x 240 at 0.4 mm a pixel (16 x 9.6 cm). Edited in place when it exists.
+    static GameObject BuildScannerScreen()
+    {
+        const string path = Prefabs + "ScannerScreen.prefab";
+        bool exists = System.IO.File.Exists(path);
+        var root = exists ? PrefabUtility.LoadPrefabContents(path) : new GameObject("ScannerScreen");
+        for (int i = root.transform.childCount - 1; i >= 0; i--) Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
+
+        var canvas = GetOrAdd<Canvas>(root);
+        canvas.renderMode = RenderMode.WorldSpace;
+        var rt = (RectTransform)root.transform;
+        rt.sizeDelta = new Vector2(400, 240);
+        rt.localScale = Vector3.one * 0.0004f;
+        var screen = GetOrAdd<ScannerScreen>(root);
+
+        var title = Font("ChakraPetch-Regular SDF");
+        var mono = Font("ShareTechMono-Regular SDF");
+        var frameSprite = FrameSprite();
+        var white = WhiteSprite();
+        var green = Hex("3DDC84");
+        var dim = Hex("8FA6C7");
+        const int W = 384, H = 176;                      // the picture
+        float marginX = 0.08f * W, marginY = 0.08f * H;  // the scan area: Scanner.viewMargin
+
+        var bg = Rect("Background", root.transform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        bg.gameObject.AddComponent<Image>().color = Ink;
+
+        var feedRt = Rect("Feed", root.transform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-W / 2f, 2 - H / 2f), new Vector2(W / 2f, 2 + H / 2f));
+        var feed = feedRt.gameObject.AddComponent<RawImage>();
+        feed.raycastTarget = false;
+        var overlay = Rect("Overlay", feedRt, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        overlay.gameObject.AddComponent<RectMask2D>();
+
+        var reticle = Rect("Reticle", overlay, Vector2.zero, Vector2.one, new Vector2(marginX, marginY), new Vector2(-marginX, -marginY));
+        var reticleImg = reticle.gameObject.AddComponent<Image>();
+        reticleImg.sprite = frameSprite;
+        reticleImg.type = Image.Type.Sliced;
+        reticleImg.color = new Color(green.r, green.g, green.b, 0.9f);
+        reticleImg.raycastTarget = false;
+        var fill = Rect("ScanFill", reticle, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var fillImg = fill.gameObject.AddComponent<Image>();
+        fillImg.sprite = white;
+        fillImg.color = new Color(green.r, green.g, green.b, 0.15f);
+        fillImg.raycastTarget = false;
+        var sweep = Rect("Sweep", reticle, new Vector2(0, 0.5f), new Vector2(1, 0.5f), new Vector2(0, -1), new Vector2(0, 1));
+        var sweepImg = sweep.gameObject.AddComponent<Image>();
+        sweepImg.sprite = white;
+        sweepImg.color = new Color(green.r, green.g, green.b, 0.85f);
+        sweepImg.raycastTarget = false;
+
+        // One label for a fault: corner brackets around it, its name above, and below it the tool it needs (or a progress bar)
+        var marker = Rect("Marker", overlay, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-28, -28), new Vector2(28, 28));
+        var mFrame = Rect("Frame", marker, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var mImg = mFrame.gameObject.AddComponent<Image>();
+        mImg.sprite = frameSprite;
+        mImg.type = Image.Type.Sliced;
+        mImg.color = Cyan;
+        mImg.raycastTarget = false;
+        var mLabel = Label("Label", marker, "SYMPTOM", mono, 18, Cyan, TextAlignmentOptions.Bottom);
+        Place(mLabel.rectTransform, new Vector2(0.5f, 1), new Vector2(0.5f, 1), new Vector2(-90, 3), new Vector2(90, 21));
+        mLabel.overflowMode = TextOverflowModes.Overflow;
+        var mBar = Rect("Bar", marker, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-28, -9), new Vector2(28, -4));
+        var mBarImg = mBar.gameObject.AddComponent<Image>();
+        mBarImg.color = Raised;
+        mBarImg.raycastTarget = false;
+        var mFill = Rect("Fill", mBar, Vector2.zero, Vector2.one, new Vector2(1, 1), new Vector2(-1, -1));
+        var mFillImg = mFill.gameObject.AddComponent<Image>();
+        mFillImg.sprite = white;
+        mFillImg.type = Image.Type.Filled;
+        mFillImg.fillMethod = Image.FillMethod.Horizontal;
+        mFillImg.fillOrigin = (int)Image.OriginHorizontal.Left;
+        mFillImg.color = Text;
+        mFillImg.raycastTarget = false;
+        var mSub = Label("Sub", marker, "TOOL", mono, 14, Cyan, TextAlignmentOptions.Top);
+        Place(mSub.rectTransform, new Vector2(0.5f, 0), new Vector2(0.5f, 0), new Vector2(-90, -26), new Vector2(90, -10));
+        mSub.overflowMode = TextOverflowModes.Overflow;
+        marker.gameObject.SetActive(false);
+
+        var titleT = Label("Title", root.transform, "ROBODOC//SCAN", title, 18, Cyan, TextAlignmentOptions.Left);
+        Place(titleT.rectTransform, new Vector2(0, 1), new Vector2(0, 1), new Vector2(12, -28), new Vector2(220, -4));
+        var status = Label("Status", root.transform, "STANDBY", mono, 18, dim, TextAlignmentOptions.Right);
+        Place(status.rectTransform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-170, -28), new Vector2(-12, -4));
+        var hint = Label("Hint", root.transform, "", mono, 16, dim, TextAlignmentOptions.Left);
+        Place(hint.rectTransform, new Vector2(0, 0), new Vector2(0, 0), new Vector2(12, 6), new Vector2(260, 30));
+        var count = Label("Count", root.transform, "", mono, 16, Text, TextAlignmentOptions.Right);
+        Place(count.rectTransform, new Vector2(1, 0), new Vector2(1, 0), new Vector2(-150, 6), new Vector2(-12, 30));
+        var standby = Label("Standby", root.transform, "STANDBY", mono, 30, dim, TextAlignmentOptions.Center);
+        Place(standby.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(-150, -14), new Vector2(150, 18));
+
+        screen.scanner = null;                          // found in the parents at runtime
+        screen.feed = feed;
+        screen.overlay = overlay;
+        screen.markerTemplate = marker;
+        screen.reticle = reticle;
+        screen.scanFill = fillImg;
+        screen.sweepLine = sweep;
+        screen.statusText = status;
+        screen.hintText = hint;
+        screen.countText = count;
+        screen.standbyText = standby;
+        screen.feedSize = new Vector2Int(W, H);
+        EditorUtility.SetDirty(screen);
+
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        if (exists) PrefabUtility.UnloadPrefabContents(root); else Object.DestroyImmediate(root);
+        return AssetDatabase.LoadAssetAtPath<GameObject>(path);
     }
 
     static GameObject BuildSparePart()

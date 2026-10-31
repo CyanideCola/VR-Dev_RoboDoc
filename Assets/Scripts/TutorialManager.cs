@@ -107,10 +107,11 @@ public class TutorialManager : MonoBehaviour
         Say("Some faults are hidden and only show up on a scanner. Teleport to the store and buy the SCANNER.", shopTarget);
         yield return WaitForAny("Bought:Scanner");
 
-        Say("Pick up the scanner and go back to the computer. When the next patient arrives, hold the trigger and point the scanner at it for a second.", computerTarget);
-        yield return WaitForAny("Scanned");
+        Say("Pick up the scanner: its screen shows every fault it can see. Go to the computer, aim it at the next patient and hold the trigger until it finds the hidden fault.", computerTarget);
+        float scannedFor = 0f;   // if the fault is on the far side, move on after 15 seconds of scanning
+        yield return new WaitUntil(() => seen.Contains("Found") || (seen.Contains("Scanned") && (scannedFor += Time.deltaTime) > 15f));
 
-        Say("Hidden faults it finds are added to the rack list, and they pay extra. Now ACCEPT this patient.", computerTarget);
+        Say("A fault the scanner finds can be fixed like any other, and it pays extra. Faults you never find are reported when you hand a robot back. Now ACCEPT this patient.", computerTarget);
         yield return WaitForAny("Accepted");
 
         Say("Teleport to the rack. If a robot isn't worth fixing, press DISMANTLE before you fix anything: it costs 10 energy but gives you a spare part. Robots with a red socket on the head need one: press TAKE PART in the store and touch it to the socket. Press DISMANTLE now.", rackTarget);
