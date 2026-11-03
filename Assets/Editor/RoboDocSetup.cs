@@ -13,9 +13,9 @@ using UnityEngine.XR.Interaction.Toolkit.Interactables;
 // Safe to run again: each step replaces what it made last time.
 public static class RoboDocSetup
 {
-    const string Prefabs = "Assets/PreFabs/";
-    const string Mats = "Assets/Materials/";
-    const string ScenePath = "Assets/Main Game.unity";
+    const string Prefabs = "Assets/Prefabs/";
+    const string Mats = "Assets/Art/Materials/";
+    const string ScenePath = "Assets/Scenes/Main Game.unity";
 
     // Interface palette (section 11 of the design doc)
     static readonly Color Ink = Hex("0B1220"), Panel = Hex("131C2E"), Raised = Hex("1B2740"), Line = Hex("2B3A5C"),
@@ -352,7 +352,7 @@ public static class RoboDocSetup
         barImg.color = Raised;
         var fillRt = Rect("Fill", barBg, Vector2.zero, Vector2.one, new Vector2(2, 2), new Vector2(-2, -2));
         var fill = fillRt.gameObject.AddComponent<Image>();
-        fill.sprite = TexSprite("Assets/Textures/White.png", (x, y, n) => true);
+        fill.sprite = TexSprite("Assets/Art/Textures/White.png", (x, y, n) => true);
         fill.type = Image.Type.Filled;
         fill.fillMethod = Image.FillMethod.Horizontal;
         fill.fillOrigin = (int)Image.OriginHorizontal.Left;
@@ -432,7 +432,7 @@ public static class RoboDocSetup
     // Upward chevron: a triangle with a notch cut from its base
     static Sprite ArrowSprite()
     {
-        return TexSprite("Assets/Textures/ObjectiveArrow.png", (x, y, n) =>
+        return TexSprite("Assets/Art/Textures/ObjectiveArrow.png", (x, y, n) =>
         {
             float half = (n - 1 - y) * 0.5f, cx = Mathf.Abs(x - (n - 1) * 0.5f);
             return y >= 4 && cx <= half && !(y < 26 && cx <= (26 - y) * 0.9f);
@@ -484,7 +484,7 @@ public static class RoboDocSetup
 
     // ---------- printer, new tools, antenna model, teleport facing, tutorial text ----------
 
-    const string ModelDir = "Assets/Resources/Assets/3D/";   // changed by the folder reorganization
+    const string ModelDir = "Assets/Art/Models/";
 
     static Bounds RenderBounds(GameObject go)
     {
@@ -716,7 +716,7 @@ public static class RoboDocSetup
     // Level 3 brings loose screws, level 4 a jammed joint
     static void AddToolRepairs()
     {
-        var db = AssetDatabase.LoadAssetAtPath<RepairDatabase>("Assets/RepairDatabase.asset");
+        var db = AssetDatabase.LoadAssetAtPath<RepairDatabase>("Assets/Data/RepairDatabase.asset");
         if (!db.repairs.Any(r => r.tool == ToolType.Screwdriver))
             db.repairs.Add(new RepairEntry { symptom = "Loose screws", region = RepairRegion.Torso, tool = ToolType.Screwdriver, workNeeded = 3f, minLevel = 2, pay = 120 });
         if (!db.repairs.Any(r => r.tool == ToolType.Drill))
@@ -816,7 +816,7 @@ public static class RoboDocSetup
     // Corner brackets: 2 px lines with 14 px arms and 16 px slices, so any size keeps the same corners
     static Sprite FrameSprite()
     {
-        return TexSprite("Assets/Textures/ScannerFrame.png", (x, y, n) =>
+        return TexSprite("Assets/Art/Textures/ScannerFrame.png", (x, y, n) =>
         {
             bool onH = y < 2 || y >= n - 2, onV = x < 2 || x >= n - 2;
             bool nearX = x < 16 || x >= n - 16, nearY = y < 16 || y >= n - 16;
@@ -824,7 +824,7 @@ public static class RoboDocSetup
         }, new Vector4(16, 16, 16, 16));
     }
 
-    static Sprite WhiteSprite() { return TexSprite("Assets/Textures/White.png", (x, y, n) => true); }
+    static Sprite WhiteSprite() { return TexSprite("Assets/Art/Textures/White.png", (x, y, n) => true); }
 
     // The display: 400 x 240 at 0.4 mm a pixel (16 x 9.6 cm). Edited in place when it exists.
     static GameObject BuildScannerScreen()
@@ -983,7 +983,7 @@ public static class RoboDocSetup
 
     static void AddDatabaseEntry()
     {
-        var db = AssetDatabase.LoadAssetAtPath<RepairDatabase>("Assets/RepairDatabase.asset");
+        var db = AssetDatabase.LoadAssetAtPath<RepairDatabase>("Assets/Data/RepairDatabase.asset");
         if (!db || db.repairs.Any(r => r.tool == ToolType.Part)) return;
         db.repairs.Add(new RepairEntry { symptom = "Missing antenna", region = RepairRegion.Head, tool = ToolType.Part, workNeeded = 1f, minLevel = 1, pay = 150 });
         EditorUtility.SetDirty(db);
