@@ -19,6 +19,7 @@ public class Robot : MonoBehaviour
     {
         walker.Stop();
         transform.SetPositionAndRotation(t.position, t.rotation);
+        StandOn(t.position.y);
         Physics.SyncTransforms();
         foreach (var rb in GetComponentsInChildren<Rigidbody>())
         {
@@ -26,6 +27,22 @@ public class Robot : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
+    }
+
+    // The model's feet hang below its root, so lift the robot until its lowest point is on the ground
+    public void StandOn(float groundY)
+    {
+        float feet = LowestPoint();
+        if (feet != float.MaxValue) transform.position += Vector3.up * (groundY - feet);
+    }
+
+    // World height of the lowest visible part of the model (its feet), or float.MaxValue if nothing is drawn
+    float LowestPoint()
+    {
+        float lowest = float.MaxValue;
+        foreach (var r in GetComponentsInChildren<Renderer>(false))
+            if (r.enabled && r.gameObject.activeInHierarchy && r.bounds.min.y < lowest) lowest = r.bounds.min.y;
+        return lowest;
     }
 
     public void Handoff()

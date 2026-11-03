@@ -24,6 +24,7 @@ public class Spawner : MonoBehaviour
         Transform origin = ExitPoint;
         GameObject go = Instantiate(robotPrefab, origin.position, origin.rotation);
         Robot robot = go.GetComponent<Robot>();
+        robot.StandOn(origin.position.y);     // feet on the ground, as in the rack
         current = robot;
         robot.state = Robot.State.WalkingToCounter;
         robot.walker.WalkTo(counterPoint, () => intake.Show(robot));

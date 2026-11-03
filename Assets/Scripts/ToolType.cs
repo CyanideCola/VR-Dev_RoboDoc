@@ -1,4 +1,4 @@
-public enum ToolType { Hammer, Screwdriver, FeatherDuster, Grinder, SprayCan, Scanner, Part }
+public enum ToolType { Hammer, Screwdriver, FeatherDuster, Grinder, SprayCan, Scanner, Part, Drill }
 
 public static class ToolTypeNames
 {

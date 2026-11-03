@@ -43,3 +43,15 @@ MonoBehaviour:
     workNeeded: 1
     minLevel: 1
     pay: 150
+  - symptom: Loose screws
+    region: 2
+    tool: 1
+    workNeeded: 3
+    minLevel: 2
+    pay: 120
+  - symptom: Jammed joint
+    region: 1
+    tool: 7
+    workNeeded: 3
+    minLevel: 3
+    pay: 140

@@ -25,7 +25,7 @@ public static class RoboDocSetup
     public static void RunAll()
     {
         var scanner = BuildScanner();
-        var part = BuildSparePart();
+        var part = BuildSparePartPlaceholder();
         AddAntennaSocket();
         AddDatabaseEntry();
         BuildStore(scanner, part);
@@ -336,7 +336,7 @@ public static class RoboDocSetup
         var follow = go.AddComponent<PanelFollow>();
         follow.head = cam;
         follow.distance = 1.3f;
-        follow.height = -0.4f;
+        follow.height = -0.5f;
         follow.side = 0.45f;
 
         var mono = Font("ShareTechMono-Regular SDF");
@@ -481,6 +481,248 @@ public static class RoboDocSetup
     }
 
     // ---------- prefabs ----------
+
+    // ---------- printer, new tools, antenna model, teleport facing, tutorial text ----------
+
+    const string ModelDir = "Assets/Resources/Assets/3D/";   // changed by the folder reorganization
+
+    static Bounds RenderBounds(GameObject go)
+    {
+        var b = new Bounds(go.transform.position, Vector3.zero);
+        bool first = true;
+        foreach (var r in go.GetComponentsInChildren<Renderer>())
+        {
+            if (first) { b = r.bounds; first = false; } else b.Encapsulate(r.bounds);
+        }
+        return b;
+    }
+
+    static GameObject LoadModel(string file)
+    {
+        var m = AssetDatabase.LoadAssetAtPath<GameObject>(ModelDir + file);
+        if (!m) throw new System.Exception("Model not found or not imported: " + ModelDir + file);
+        return m;
+    }
+
+    [MenuItem("Tools/RoboDoc/Build Printer, Tools and Antenna")]
+    public static void RunPrinterToolsAntenna()
+    {
+        var antennaModel = LoadModel("proto_antenna.blend");
+        var spare = BuildSparePart(antennaModel);
+        var screwdriver = BuildHandTool("Screwdriver", LoadModel("proto_screwdriver.blend"), ToolType.Screwdriver, 0.22f);
+        var drill = BuildHandTool("Drill", LoadModel("proto_drill.blend"), ToolType.Drill, 0.26f);
+        AddToolSpots(antennaModel);
+        AddToolRepairs();
+
+        var scene = EditorSceneManager.OpenScene(ScenePath);
+        var log = new System.Text.StringBuilder();
+
+        // Teleport: restore the player's facing after every teleport
+        var provider = Object.FindAnyObjectByType<UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider>(FindObjectsInactive.Include);
+        var origin = Object.FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>(FindObjectsInactive.Include);
+        var keep = GetOrAdd<KeepFacingAfterTeleport>(provider.gameObject);
+        keep.provider = provider;
+        keep.origin = origin;
+        EditorUtility.SetDirty(keep);
+
+        // Tutorial text: a bigger area (clear of the arrow on the left) that shrinks long lines to fit
+        var tm = Object.FindAnyObjectByType<TutorialManager>(FindObjectsInactive.Include);
+        var tt = tm.text;
+        tt.rectTransform.offsetMin = new Vector2(90, 12);
+        tt.rectTransform.offsetMax = new Vector2(-16, -12);
+        tt.enableAutoSizing = true;
+        tt.fontSizeMin = 10f;
+        tt.fontSizeMax = 26f;
+        tt.textWrappingMode = TextWrappingModes.Normal;
+        tt.overflowMode = TextOverflowModes.Overflow;
+        EditorUtility.SetDirty(tt);
+
+        // Printer at the shop, with its tray inside
+        var old = GameObject.Find("Printer");
+        if (old) Object.DestroyImmediate(old);
+        var printer = (GameObject)PrefabUtility.InstantiatePrefab(LoadModel("proto_printer.blend"));
+        printer.name = "Printer";
+        printer.transform.position = new Vector3(1f, 0.87f, -1.6f);
+        printer.transform.rotation = Quaternion.identity;
+        var nativeB = RenderBounds(printer);
+        // The model comes in about 100 times too big: scale it so a tool fits inside (0.85 m wide)
+        printer.transform.localScale = Vector3.one * (0.85f / Mathf.Max(nativeB.size.x, nativeB.size.z));
+        var pb = RenderBounds(printer);
+        log.Append($"printer bounds: center={pb.center} size={pb.size} min={pb.min} max={pb.max}\n");
+
+        var stock = Object.FindAnyObjectByType<ToolStock>();
+        stock.dropPoint.position = new Vector3(pb.center.x, pb.min.y + 0.06f, pb.center.z);
+        stock.dropPoint.rotation = Quaternion.identity;
+        stock.printer = printer.transform;
+        stock.printTime = 2f;
+        stock.partPrefab = spare;
+
+        var list = new List<ToolStock.Entry>(stock.entries);
+        if (!list.Any(e => e.tool == ToolType.Screwdriver)) list.Add(new ToolStock.Entry { label = "Screwdriver", tool = ToolType.Screwdriver, prefab = screwdriver, price = 40, starter = false });
+        if (!list.Any(e => e.tool == ToolType.Drill)) list.Add(new ToolStock.Entry { label = "Drill", tool = ToolType.Drill, prefab = drill, price = 60, starter = false });
+        foreach (var e in list)   // the prefabs were rebuilt, so point the entries at them again
+        {
+            if (e.tool == ToolType.Screwdriver) e.prefab = screwdriver;
+            if (e.tool == ToolType.Drill) e.prefab = drill;
+        }
+        stock.entries = list.ToArray();
+        EditorUtility.SetDirty(stock);
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+
+        // The shop gets two more rows
+        BuildStore(AssetDatabase.LoadAssetAtPath<GameObject>(Prefabs + "Scanner.prefab"), spare);
+
+        // A look at the printer with a print inside it
+        var scene2 = EditorSceneManager.OpenScene(ScenePath);
+        var p2 = GameObject.Find("Printer");
+        var b2 = RenderBounds(p2);
+        var st2 = Object.FindAnyObjectByType<ToolStock>();
+        var item = (GameObject)PrefabUtility.InstantiatePrefab(st2.entries[0].prefab);
+        item.transform.position = st2.dropPoint.position;
+        var ib = RenderBounds(item);
+        log.Append($"mallet in tray: center={ib.center} size={ib.size}; printer top={b2.max.y:F2}\n");
+        foreach (var e in st2.entries) log.Append($"entry {e.label} {e.tool} {e.price}g prefab={(e.prefab ? e.prefab.name : "NULL")}\n");
+        var cam = new GameObject("ShotCam").AddComponent<Camera>();
+        cam.fieldOfView = 40f; cam.nearClipPlane = 0.05f;
+        cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = new Color(0.3f, 0.3f, 0.34f);
+        var look = b2.center;
+        cam.transform.position = look + new Vector3(-0.9f, 0.5f, -0.9f);
+        cam.transform.LookAt(look);
+        var rt = new RenderTexture(900, 600, 24); cam.targetTexture = rt; cam.Render();
+        RenderTexture.active = rt;
+        var tex = new Texture2D(900, 600); tex.ReadPixels(new Rect(0, 0, 900, 600), 0, 0); tex.Apply();
+        var dir = System.Environment.GetEnvironmentVariable("SHOT_DIR");
+        if (!string.IsNullOrEmpty(dir)) System.IO.File.WriteAllBytes(dir + "/printer.png", tex.EncodeToPNG());
+        System.IO.File.WriteAllText((dir ?? ".") + "/printer.txt", log.ToString());
+        Debug.Log("RoboDocSetup: printer, tools and antenna done");
+    }
+
+    static GameObject BuildHandTool(string name, GameObject model, ToolType type, float length)
+    {
+        string path = Prefabs + name + ".prefab";
+        var root = new GameObject(name);
+        var visual = (GameObject)PrefabUtility.InstantiatePrefab(model, root.transform);
+        visual.transform.localPosition = Vector3.zero;
+        var b = RenderBounds(visual);
+        float s = length / Mathf.Max(b.size.x, b.size.y, b.size.z);
+        visual.transform.localScale = Vector3.one * s;
+        var nb = RenderBounds(visual);
+        visual.transform.localPosition -= nb.center - root.transform.position;   // centred on the root
+        nb = RenderBounds(visual);
+        var box = root.AddComponent<BoxCollider>();
+        box.center = nb.center - root.transform.position;
+        box.size = nb.size;
+        root.AddComponent<Rigidbody>();
+        var grab = root.AddComponent<XRGrabInteractable>();
+        grab.useDynamicAttach = true;
+        grab.colliders.Clear();
+        var so = new SerializedObject(grab);
+        so.FindProperty("m_FarAttachMode").enumValueIndex = 1;   // Near, like the other tools
+        so.ApplyModifiedPropertiesWithoutUndo();
+        var head = root.AddComponent<ToolHead>();
+        head.type = type;
+        head.mode = ToolHead.Mode.Rub;      // work builds up while the tool stays on the fault
+        head.minSpeed = 0f;
+        head.hitSoundName = "";
+        root.AddComponent<TutorialGrabEvent>().id = name;
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        Object.DestroyImmediate(root);
+        return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+    }
+
+    static GameObject BuildSparePart(GameObject antennaModel)
+    {
+        const string path = Prefabs + "SparePart.prefab";
+        var root = PrefabUtility.LoadPrefabContents(path);
+        for (int i = root.transform.childCount - 1; i >= 0; i--) Object.DestroyImmediate(root.transform.GetChild(i).gameObject);
+        var visual = (GameObject)PrefabUtility.InstantiatePrefab(antennaModel, root.transform);
+        visual.transform.localPosition = Vector3.zero;
+        var b = RenderBounds(visual);
+        float s = 0.16f / Mathf.Max(b.size.x, b.size.y, b.size.z);
+        visual.transform.localScale = Vector3.one * s;
+        var nb = RenderBounds(visual);
+        visual.transform.localPosition -= nb.center - root.transform.position;
+        nb = RenderBounds(visual);
+        var box = root.GetComponent<BoxCollider>();
+        box.center = nb.center - root.transform.position;
+        box.size = nb.size;
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        PrefabUtility.UnloadPrefabContents(root);
+        return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+    }
+
+    // The robot's antenna socket gets the real antenna model, and two new repairs get their own spots
+    static void AddToolSpots(GameObject antennaModel)
+    {
+        string path = Prefabs + "RobotRoot.prefab";
+        var root = PrefabUtility.LoadPrefabContents(path);
+        var faults = root.GetComponent<RobotFaults>();
+
+        var antennaSpot = root.transform.Find("MissingAntenna");
+        var oldFixed = antennaSpot.Find("Fixed Visual");
+        var fault = antennaSpot.GetComponent<Fault>();
+        Object.DestroyImmediate(oldFixed.gameObject);
+        var model = (GameObject)PrefabUtility.InstantiatePrefab(antennaModel, antennaSpot);
+        model.name = "Fixed Visual";
+        model.transform.localRotation = Quaternion.identity;
+        model.transform.localScale = Vector3.one;
+        var mb = RenderBounds(model);                    // at the spot's scale of 0.05
+        float want = 0.30f / 0.05f;                      // 30 cm tall in the spot's own units
+        float s = want / Mathf.Max(0.0001f, mb.size.y) * antennaSpot.lossyScale.x;
+        model.transform.localScale = Vector3.one * s;
+        mb = RenderBounds(model);
+        model.transform.position += Vector3.up * (antennaSpot.position.y - mb.min.y);   // base on the socket
+        fault.fixedVisual = model;
+
+        foreach (var n in new[] { "LooseScrews", "JammedJoint" })
+        {
+            var oldSpot = root.transform.Find(n);
+            if (oldSpot) { faults.possibleFaults.Remove(oldSpot.GetComponent<Fault>()); Object.DestroyImmediate(oldSpot.gameObject); }
+        }
+        MakeSpot(root, faults, "LooseScrews", root.transform.Find("Rust").localPosition + new Vector3(0f, -0.32f, 0.14f),
+                 "Loose screws", ToolType.Screwdriver, RepairRegion.Torso, 120);
+        MakeSpot(root, faults, "JammedJoint", root.transform.Find("ArmDent").localPosition + new Vector3(0f, 0.38f, 0f),
+                 "Jammed joint", ToolType.Drill, RepairRegion.Arm, 140);
+
+        PrefabUtility.SaveAsPrefabAsset(root, path);
+        PrefabUtility.UnloadPrefabContents(root);
+    }
+
+    static void MakeSpot(GameObject root, RobotFaults faults, string name, Vector3 pos, string symptom, ToolType tool, RepairRegion region, int pay)
+    {
+        var spot = new GameObject(name);
+        spot.transform.SetParent(root.transform, false);
+        spot.transform.localPosition = pos;
+        spot.transform.localScale = Vector3.one * 0.05f;
+        var col = spot.AddComponent<BoxCollider>();
+        col.isTrigger = true;
+        col.size = Vector3.one * 2f;
+        var good = Visual(PrimitiveType.Cube, "Fixed Visual", spot.transform, Vector3.zero, Vector3.one * 0.8f, Mat("Fixed Bolt", Hex("3DDC84")));
+        var bad = Visual(PrimitiveType.Cube, "Broken Visual", spot.transform, Vector3.zero, new Vector3(1.2f, 1.2f, 1.2f), Mat("Empty Socket", Hex("FF5A4D"), true));
+        var f = spot.AddComponent<Fault>();
+        f.region = region;
+        f.symptom = symptom;
+        f.requiredTool = tool;
+        f.workNeeded = 3f;
+        f.pay = pay;
+        f.overHitGrace = 0;
+        f.fixedVisual = good;
+        f.brokenVisual = bad;
+        faults.possibleFaults.Add(f);
+    }
+
+    // Level 3 brings loose screws, level 4 a jammed joint
+    static void AddToolRepairs()
+    {
+        var db = AssetDatabase.LoadAssetAtPath<RepairDatabase>("Assets/RepairDatabase.asset");
+        if (!db.repairs.Any(r => r.tool == ToolType.Screwdriver))
+            db.repairs.Add(new RepairEntry { symptom = "Loose screws", region = RepairRegion.Torso, tool = ToolType.Screwdriver, workNeeded = 3f, minLevel = 2, pay = 120 });
+        if (!db.repairs.Any(r => r.tool == ToolType.Drill))
+            db.repairs.Add(new RepairEntry { symptom = "Jammed joint", region = RepairRegion.Arm, tool = ToolType.Drill, workNeeded = 3f, minLevel = 3, pay = 140 });
+        EditorUtility.SetDirty(db);
+    }
 
     [MenuItem("Tools/RoboDoc/Build Scanner Screen")]
     public static void RunScannerScreen()
@@ -692,7 +934,7 @@ public static class RoboDocSetup
         return AssetDatabase.LoadAssetAtPath<GameObject>(path);
     }
 
-    static GameObject BuildSparePart()
+    static GameObject BuildSparePartPlaceholder()
     {
         var root = new GameObject("SparePart");
         root.AddComponent<BoxCollider>().size = Vector3.one * 0.08f;
@@ -787,7 +1029,7 @@ public static class RoboDocSetup
 
         var listRt = Rect("Rows", ct, Vector2.zero, Vector2.one, new Vector2(10, 10), new Vector2(-10, -58));
         var v = listRt.gameObject.AddComponent<VerticalLayoutGroup>();
-        v.spacing = 6;
+        v.spacing = 3;
         v.childControlHeight = v.childControlWidth = true;
         v.childForceExpandHeight = false;
         v.childForceExpandWidth = true;
@@ -855,15 +1097,15 @@ public static class RoboDocSetup
         var rt = new GameObject(label, typeof(RectTransform)).GetComponent<RectTransform>();
         rt.SetParent(parent, false);
         rt.gameObject.AddComponent<Image>().color = Panel;
-        rt.gameObject.AddComponent<LayoutElement>().preferredHeight = 38;
+        rt.gameObject.AddComponent<LayoutElement>().preferredHeight = 30;
         var h = rt.gameObject.AddComponent<HorizontalLayoutGroup>();
-        h.padding = new RectOffset(10, 4, 4, 4);
+        h.padding = new RectOffset(10, 4, 2, 2);
         h.spacing = 6;
         h.childAlignment = TextAnchor.MiddleLeft;
         h.childControlHeight = h.childControlWidth = true;
         h.childForceExpandHeight = true;
         h.childForceExpandWidth = false;
-        var t = Label("Label", rt, label, font, 20, Text, TextAlignmentOptions.Left);
+        var t = Label("Label", rt, label, font, 18, Text, TextAlignmentOptions.Left);
         t.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         return rt;
     }
@@ -888,7 +1130,7 @@ public static class RoboDocSetup
             colorMultiplier = 1f,
             fadeDuration = 0.08f,
         };
-        label = Label("Text", go.transform, text, font, 18, textColor, TextAlignmentOptions.Center);
+        label = Label("Text", go.transform, text, font, 16, textColor, TextAlignmentOptions.Center);
         Place(label.rectTransform, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
         return b;
     }

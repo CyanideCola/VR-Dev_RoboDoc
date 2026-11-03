@@ -13,6 +13,19 @@ public class Rack : MonoBehaviour
     void Awake()
     {
         occupants = new Robot[slots.Length];
+        // DISMANTLE is the longest label: keep every button label on one line, shrinking to fit
+        if (doneButtons != null)
+            foreach (var b in doneButtons)
+            {
+                if (!b) continue;
+                var label = b.GetComponentInChildren<TMP_Text>(true);
+                if (!label) continue;
+                label.textWrappingMode = TextWrappingModes.NoWrap;
+                label.overflowMode = TextOverflowModes.Overflow;
+                label.enableAutoSizing = true;
+                label.fontSizeMin = 14f;
+                label.fontSizeMax = 40f;
+            }
         Refresh();
     }
 
