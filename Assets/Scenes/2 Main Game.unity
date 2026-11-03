@@ -13509,6 +13509,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Printer
       objectReference: {fileID: 0}
+    - target: {fileID: -927199367670048503, guid: 96249c0942183804dbe45a3cca75b793, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6213152215192177771, guid: 96249c0942183804dbe45a3cca75b793, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -13516,13 +13520,42 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: -927199367670048503, guid: 96249c0942183804dbe45a3cca75b793, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1551668260}
   m_SourcePrefab: {fileID: 100100000, guid: 96249c0942183804dbe45a3cca75b793, type: 3}
 --- !u!4 &1551668258 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -4216859302048453862, guid: 96249c0942183804dbe45a3cca75b793, type: 3}
   m_PrefabInstance: {fileID: 1551668257}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1551668259 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -927199367670048503, guid: 96249c0942183804dbe45a3cca75b793, type: 3}
+  m_PrefabInstance: {fileID: 1551668257}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &1551668260
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1551668259}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &1553818589
 GameObject:
   m_ObjectHideFlags: 0
