@@ -68,15 +68,20 @@ public class TutorialManager : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        Say(ControlOptions.LeftStickTeleport
-            ? "Welcome to RoboDoc! To start, push either thumbstick forward."
-            : "Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
-        yield return WaitForAny("TeleportRay");
+        // The booth has no teleporting: the stations are all around the player
+        if (!BoothMode.Active)
+        {
+            Say(ControlOptions.LeftStickTeleport
+                ? "Welcome to RoboDoc! To start, push either thumbstick forward."
+                : "Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
+            yield return WaitForAny("TeleportRay");
 
-        Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", nearStand);
-        yield return new WaitUntil(() => Near(nearStand));
+            Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", nearStand);
+            yield return new WaitUntil(() => Near(nearStand));
+        }
 
-        Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.", shopTarget);
+        Say(BoothMode.Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.",
+            "Welcome to RoboDoc! Let's buy your first tools. The shop is on your right."), shopTarget);
         yield return new WaitUntil(() => Near(shopStand));
 
         Say("Buy the MALLET for 50 gold: point at the button in the shop and pull the trigger (index finger).", shopTarget);
@@ -89,7 +94,7 @@ public class TutorialManager : MonoBehaviour
             : "Reach out to the mallet and hold the side grip button (middle finger). Let go to put it down.", shopTarget);
         yield return WaitForAny("Grab:Mallet");
 
-        Say("Teleport to the station by the computer.", computerTarget);
+        Say(BoothMode.Say("Teleport to the station by the computer.", "Turn to the computer in front of you."), computerTarget);
         yield return new WaitUntil(() => Near(counterStand));
 
         Say("A patient is on its way.", computerTarget);
@@ -99,7 +104,7 @@ public class TutorialManager : MonoBehaviour
         Say("Read the complaint, then point at ACCEPT and pull the trigger.", computerTarget);
         yield return WaitForAny("Accepted");
 
-        Say("The robot is in the rack. It costs energy until you press DONE. Teleport to the rack station.", rackTarget);
+        Say("The robot is in the rack. It costs energy until you press DONE. " + BoothMode.Say("Teleport to the rack station.", "The rack is behind you."), rackTarget);
         yield return new WaitUntil(() => Near(rackStand));
 
         Fault f = FirstOpenFault(false);
@@ -124,7 +129,7 @@ public class TutorialManager : MonoBehaviour
         var stock = FindAnyObjectByType<ToolStock>();
         var scanner = stock ? System.Array.Find(stock.entries, e => e.tool == ToolType.Scanner) : null;
         if (gp && scanner != null && gp.money < scanner.price) gp.money = scanner.price;   // never stuck for gold here
-        Say("Some faults are hidden and only show up on a scanner. Teleport to the store and buy the SCANNER.", shopTarget);
+        Say("Some faults are hidden and only show up on a scanner. " + BoothMode.Say("Teleport to the store", "Go to the store") + " and buy the SCANNER.", shopTarget);
         yield return WaitForAny("Bought:Scanner");
 
         Say("Pick up the scanner: its screen shows every fault it can see. Go to the rack, aim it at the next patient and hold the trigger until it finds the hidden fault.", computerTarget);
@@ -134,7 +139,7 @@ public class TutorialManager : MonoBehaviour
         Say("A fault the scanner finds can be fixed like any other, and it pays extra. Faults you never find are reported when you hand a robot back. Now ACCEPT this patient.", computerTarget);
         yield return WaitForAny("Accepted");
 
-        Say("Teleport to the rack. If a robot isn't worth fixing, press DISMANTLE before you fix anything: it costs 10 energy but gives you a spare part. Robots with a red socket on the head need one: press TAKE PART in the store and touch it to the socket. Press DISMANTLE now.", rackTarget);
+        Say(BoothMode.Say("Teleport to the rack.", "Turn to the rack.") + " If a robot isn't worth fixing, press DISMANTLE before you fix anything: it costs 10 energy but gives you a spare part. Robots with a red socket on the head need one: press TAKE PART in the store and touch it to the socket. Press DISMANTLE now.", rackTarget);
         yield return WaitForAny("Dismantled", "Done");
 
         if (gp) gp.running = false;
