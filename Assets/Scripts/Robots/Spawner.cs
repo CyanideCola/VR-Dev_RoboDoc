@@ -8,7 +8,7 @@ public class Spawner : MonoBehaviour
     public Transform spawnPoint;
     public IntakeScreen intake;
     public bool spawnOnStart = true;
-    public float spawnDelay = 8f;     // seconds until the next robot after you accept or decline
+    public float spawnDelay = 5f;     // seconds until the next robot after you accept or decline
 
     Robot current;
     bool queued;

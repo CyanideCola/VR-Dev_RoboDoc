@@ -8,6 +8,12 @@ public class ObjectiveArrow : MonoBehaviour
     public float inViewAngle = 40f;
     Transform target;
 
+    void Awake()
+    {
+        // the marker is not part of the scanner picture
+        if (marker) marker.gameObject.layer = LayerMask.NameToLayer("UI");
+    }
+
     public void SetTarget(Transform t)
     {
         target = t;

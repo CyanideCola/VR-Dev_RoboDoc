@@ -12,8 +12,10 @@ public class EnergySystem : MonoBehaviour
     public float declinePenalty = 10f, refillAmount = 50f;
     public float dismantlePenalty = 10f;   // keep >= declinePenalty, so accept then dismantle is never cheaper
     public int refillPrice = 30;
+    public float criticalLevel = 20f;       // a warning appears when the energy drops to this
 
     readonly List<Button> refillButtons = new List<Button>();
+    bool criticalShown;
 
     void Awake() { Instance = this; }
 
@@ -32,6 +34,7 @@ public class EnergySystem : MonoBehaviour
     void Update()
     {
         foreach (var b in refillButtons) b.interactable = RefillUnlocked;
+        if (energy > criticalLevel) criticalShown = false;   // after a refill the warning can show again
 
         var gp = GameProgress.Instance;
         if (!gp || !gp.running || !rack) return;
@@ -42,6 +45,11 @@ public class EnergySystem : MonoBehaviour
     public void Spend(float a) { energy -= a; Check(); }
     void Check()
     {
+        if (energy <= criticalLevel && energy > 0f && !criticalShown)
+        {
+            criticalShown = true;
+            Notifications.Push("<color=#FF5A4D>ENERGY CRITICAL</color>");
+        }
         if (energy > 0f) return;
         energy = 0f;
         GameProgress.Instance.Fail("POWER OUT");

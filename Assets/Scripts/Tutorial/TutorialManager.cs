@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
 
@@ -14,11 +15,15 @@ public class TutorialManager : MonoBehaviour
     public Transform shopTarget, computerTarget, rackTarget;  // what the arrow points at
     public float reachDistance = 1.5f;
     public float demoEndDelay = 8f;           // seconds on the last Demo message before the menu
+    public int maxPageChars = 110;            // longer messages are split into pages of about this size
+    public float secondsPerChar = 0.06f;      // how long a page stays up, per character
+    public float minPageSeconds = 3.5f;
 
     readonly HashSet<string> seen = new HashSet<string>();
     readonly HashSet<ToolType> taught = new HashSet<ToolType>();
     bool running;
     int arrivals;
+    Coroutine pager;
 
     void OnEnable() { TutorialEvents.Raised += OnEvent; }
     void OnDisable() { TutorialEvents.Raised -= OnEvent; }
@@ -131,13 +136,13 @@ public class TutorialManager : MonoBehaviour
         Fault f = FirstOpenFault(true);
         if (!f)
         {
-            if (!running) { panel.SetActive(false); if (arrow) arrow.SetTarget(null); }   // e.g. the Challenge's opening message
+            if (!running) { Hide(); if (arrow) arrow.SetTarget(null); }   // e.g. the Challenge's opening message
             yield break;
         }
         taught.Add(f.requiredTool);
         Say(RepairText(f), null);
         yield return WaitForAny("Fixed", "Done");
-        if (!running) panel.SetActive(false);
+        if (!running) Hide();
     }
 
     // Only robots that are accepted (in the rack), never the one waiting at the counter.
@@ -183,10 +188,59 @@ public class TutorialManager : MonoBehaviour
         }
     }
 
+    // A long message is shown a few sentences at a time, going round again until the next message,
+    // so each page is short enough to read at a glance
     void Say(string s, Transform target)
     {
         panel.SetActive(true);
-        text.text = s;
         if (arrow) arrow.SetTarget(target);
+        if (pager != null) { StopCoroutine(pager); pager = null; }
+        var pages = Split(s);
+        if (pages.Count <= 1) { text.text = s; return; }
+        pager = StartCoroutine(Page(pages));
+    }
+
+    void Hide()
+    {
+        if (pager != null) { StopCoroutine(pager); pager = null; }
+        panel.SetActive(false);
+    }
+
+    IEnumerator Page(List<string> pages)
+    {
+        for (int i = 0; ; i = (i + 1) % pages.Count)
+        {
+            text.text = pages[i] + "\n<size=55%><color=#8FA6C7>" + (i + 1) + " / " + pages.Count + "</color></size>";
+            yield return new WaitForSeconds(Mathf.Max(minPageSeconds, pages[i].Length * secondsPerChar));
+        }
+    }
+
+    // Whole sentences go on a page while they fit. A sentence that is too long is cut at a comma or a space.
+    List<string> Split(string s)
+    {
+        var pages = new List<string>();
+        string page = "";
+        foreach (var sentence in Regex.Split(s, @"(?<=[.!?:])\s+"))
+        {
+            if (sentence.Length > maxPageChars)
+            {
+                if (page.Length > 0) { pages.Add(page); page = ""; }
+                string rest = sentence;
+                while (rest.Length > maxPageChars)
+                {
+                    int cut = rest.LastIndexOf(", ", maxPageChars);
+                    if (cut < maxPageChars / 2) cut = rest.LastIndexOf(' ', maxPageChars);
+                    if (cut <= 0) cut = maxPageChars;
+                    pages.Add(rest.Substring(0, cut + 1).Trim());
+                    rest = rest.Substring(cut + 1).Trim();
+                }
+                page = rest;
+            }
+            else if (page.Length == 0) page = sentence;
+            else if (page.Length + 1 + sentence.Length <= maxPageChars) page += " " + sentence;
+            else { pages.Add(page); page = sentence; }
+        }
+        if (page.Length > 0) pages.Add(page);
+        return pages;
     }
 }

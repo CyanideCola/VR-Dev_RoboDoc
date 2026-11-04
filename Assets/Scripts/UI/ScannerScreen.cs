@@ -57,6 +57,7 @@ public class ScannerScreen : MonoBehaviour
         cam.enabled = false;                                  // drawn by hand, a few times a second
         cam.stereoTargetEye = StereoTargetEyeMask.None;       // not part of the headset's view
         cam.farClipPlane = scanner.range + 0.5f;
+        cam.cullingMask &= ~(1 << LayerMask.NameToLayer("UI"));   // the tutorial text and the HUD are not part of the picture
         feed.texture = rt;
         markerTemplate.gameObject.SetActive(false);
     }

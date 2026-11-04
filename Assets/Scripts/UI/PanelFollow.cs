@@ -7,6 +7,18 @@ public class PanelFollow : MonoBehaviour
     public float height = -0.25f;   // negative = below the eye line
     public float side = 0f;         // negative = left, positive = right
     public float speed = 3f;
+    public bool hideFromScanner = true;   // moved to the UI layer, which the scanner camera does not draw. Turn off for panels with buttons.
+
+    void Awake()
+    {
+        if (hideFromScanner) SetLayer(transform, LayerMask.NameToLayer("UI"));
+    }
+
+    static void SetLayer(Transform t, int layer)
+    {
+        t.gameObject.layer = layer;
+        foreach (Transform c in t) SetLayer(c, layer);
+    }
 
     void LateUpdate()
     {
