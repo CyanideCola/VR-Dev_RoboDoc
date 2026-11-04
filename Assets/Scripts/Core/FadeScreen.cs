@@ -35,21 +35,32 @@ public class FadeScreen : MonoBehaviour
         Fade(alpha, 1);
     }
 
-    public void Fade(float alphaIn, float alphaOut)
+    // The screen goes black at once, hiding a teleport (comfort option); BlinkIn brings it back
+    public void BlinkOut()
+    {
+        if (!rend) rend = GetComponent<Renderer>();
+        if (running != null) { StopCoroutine(running); running = null; }
+        rend.enabled = true;
+        SetAlpha(1f);
+    }
+
+    public void BlinkIn(float seconds) { Fade(1, 0, seconds); }
+
+    public void Fade(float alphaIn, float alphaOut, float seconds = -1f)
     {
         // Only one fade at a time: a fade-in still running when the player leaves must not cancel the fade-out
         if (running != null) StopCoroutine(running);
-        running = StartCoroutine(FadeRoutine(alphaIn,alphaOut));
+        running = StartCoroutine(FadeRoutine(alphaIn, alphaOut, seconds));
     }
 
-    public IEnumerator FadeRoutine(float alphaIn,float alphaOut)
+    public IEnumerator FadeRoutine(float alphaIn, float alphaOut, float seconds = -1f)
     {
         if (!rend) rend = GetComponent<Renderer>();
         if (fadeCurve == null || fadeCurve.length == 0) fadeCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
         rend.enabled = true;
 
         // A fade that starts partway takes proportionally less time
-        float duration = fadeDuration * Mathf.Abs(alphaOut - alphaIn);
+        float duration = (seconds >= 0f ? seconds : fadeDuration) * Mathf.Abs(alphaOut - alphaIn);
         float timer = 0;
         while(timer < duration)
         {

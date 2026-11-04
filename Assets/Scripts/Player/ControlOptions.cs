@@ -14,6 +14,13 @@ public static class ControlOptions
         set { PlayerPrefs.SetInt(LeftKey, value ? 1 : 0); PlayerPrefs.Save(); Apply(); }
     }
 
+    // Comfort: the screen blinks to black for a moment on every teleport
+    public static bool ComfortBlink
+    {
+        get { return PlayerPrefs.GetInt("comfortBlink", 0) == 1; }
+        set { PlayerPrefs.SetInt("comfortBlink", value ? 1 : 0); PlayerPrefs.Save(); }
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Init()
     {

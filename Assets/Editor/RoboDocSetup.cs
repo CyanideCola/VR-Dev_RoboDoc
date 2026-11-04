@@ -1047,6 +1047,95 @@ public static class RoboDocSetup
         EditorUtility.SetDirty(scroll);
     }
 
+    // ---------- Nov 7: pink computer, bigger antenna socket, NEXT button, comfort option ----------
+
+    [MenuItem("Tools/RoboDoc/Apply Nov 7 Fixes")]
+    public static void RunNov7()
+    {
+        // The antenna socket is high up: a trigger 0.3 m wide instead of 0.1 m
+        string path = Prefabs + "RobotRoot.prefab";
+        var robot = PrefabUtility.LoadPrefabContents(path);
+        foreach (var f in robot.GetComponentsInChildren<Fault>(true))
+            if (f.requiredTool == ToolType.Part)
+                foreach (var c in f.GetComponentsInChildren<BoxCollider>(true))
+                    if (c.isTrigger) c.size = Vector3.one * 6f;   // the socket is scaled 0.05
+        PrefabUtility.SaveAsPrefabAsset(robot, path);
+        PrefabUtility.UnloadPrefabContents(robot);
+
+        var game = EditorSceneManager.OpenScene(ScenePath);
+
+        // Computer body and printer: empty material slots draw magenta
+        var body = Mat("Computer Body", Hex("2A2F3A"));
+        foreach (var root in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (root.name != "Computer" && root.name != "Printer") continue;
+            foreach (var r in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                bool changed = false;
+                for (int i = 0; i < mats.Length; i++) if (!mats[i]) { mats[i] = body; changed = true; }
+                if (changed) r.sharedMaterials = mats;
+            }
+        }
+
+        // NEXT button on the tutorial panel
+        var tm = Object.FindAnyObjectByType<TutorialManager>(FindObjectsInactive.Include);
+        var canvas = tm.panel.GetComponent<Canvas>();
+        if (!tm.panel.GetComponent<UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster>())
+            tm.panel.AddComponent<UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster>();
+        var panelBg = tm.text.transform.parent;
+        var oldBtn = panelBg.Find("Next");
+        if (oldBtn) Object.DestroyImmediate(oldBtn.gameObject);
+        var next = SmallBtn(panelBg, "Next", "NEXT >", Font("ShareTechMono-Regular SDF"),
+            new Vector2(1, 0), new Vector2(1, 0), new Vector2(-190, 14), new Vector2(-20, 64));
+        next.gameObject.layer = tm.panel.layer;
+        next.gameObject.SetActive(false);
+        tm.nextButton = next;
+        // keep the text clear of the button
+        var trt = tm.text.rectTransform;
+        trt.offsetMin = new Vector2(trt.offsetMin.x, 66f);
+        EditorUtility.SetDirty(tm);
+        EditorSceneManager.MarkSceneDirty(game);
+        EditorSceneManager.SaveScene(game);
+
+        // Options page: three rows (Grab, Teleport, Comfort), BACK moved down
+        var start = EditorSceneManager.OpenScene(MenuScenePath);
+        var menu = Object.FindAnyObjectByType<GameStartMenu>(FindObjectsInactive.Include);
+        AddComfortOption(menu);
+        EditorSceneManager.MarkSceneDirty(start);
+        EditorSceneManager.SaveScene(start);
+        AssetDatabase.SaveAssets();
+    }
+
+    static void AddComfortOption(GameStartMenu menu)
+    {
+        var opts = menu.options.GetComponent<SetOptionFromUI>();
+        var grabRow = opts.grabDropdown.transform.parent;
+        var teleRow = opts.teleportDropdown.transform.parent;
+        var old = grabRow.parent.Find("Comfort Options");
+        if (old) Object.DestroyImmediate(old.gameObject);
+        var copy = Object.Instantiate(teleRow.gameObject, grabRow.parent);
+        copy.name = "Comfort Options";
+        copy.GetComponentInChildren<TMP_Text>(true).text = "Comfort";
+        opts.comfortDropdown = copy.GetComponentInChildren<TMP_Dropdown>(true);
+
+        // absolute positions: the Grab row was at dropdown y 28, label y -500.28 (top anchored)
+        PlaceRow(grabRow, 100f);
+        PlaceRow(teleRow, -30f);
+        PlaceRow(copy.transform, -160f);
+        foreach (var b in menu.options.GetComponentsInChildren<Button>(true))
+            if (b.name == "Validate") ((RectTransform)b.transform).anchoredPosition = new Vector2(0f, -330f);
+        EditorUtility.SetDirty(opts);
+    }
+
+    static void PlaceRow(Transform row, float dropdownY)
+    {
+        var label = (RectTransform)row.GetComponentInChildren<TMP_Text>(true).transform;
+        var drop = (RectTransform)row.GetComponentInChildren<TMP_Dropdown>(true).transform;
+        drop.anchoredPosition = new Vector2(drop.anchoredPosition.x, dropdownY);
+        label.anchoredPosition = new Vector2(label.anchoredPosition.x, -500.28f + (dropdownY - 28f));
+    }
+
     [MenuItem("Tools/RoboDoc/Build Scanner Screen")]
     public static void RunScannerScreen()
     {

@@ -10,6 +10,7 @@ public class SetOptionFromUI : MonoBehaviour
     public TMPro.TMP_Dropdown grabDropdown;   // was the turn option; turning is off in this game
 
     public TMPro.TMP_Dropdown teleportDropdown;
+    public TMPro.TMP_Dropdown comfortDropdown;
 
     private void Start()
     {
@@ -27,6 +28,15 @@ public class SetOptionFromUI : MonoBehaviour
             teleportDropdown.AddOptions(new List<string> { "Right stick", "Both sticks" });
             teleportDropdown.SetValueWithoutNotify(ControlOptions.LeftStickTeleport ? 1 : 0);
             teleportDropdown.onValueChanged.AddListener(v => ControlOptions.LeftStickTeleport = v == 1);
+        }
+
+        // Comfort: a quick blink to black on every teleport, for players who feel the jump
+        if (comfortDropdown)
+        {
+            comfortDropdown.ClearOptions();
+            comfortDropdown.AddOptions(new List<string> { "Off", "On" });
+            comfortDropdown.SetValueWithoutNotify(ControlOptions.ComfortBlink ? 1 : 0);
+            comfortDropdown.onValueChanged.AddListener(v => ControlOptions.ComfortBlink = v == 1);
         }
     }
 

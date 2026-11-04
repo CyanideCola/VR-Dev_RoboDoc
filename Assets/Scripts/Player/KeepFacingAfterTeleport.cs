@@ -10,6 +10,10 @@ public class KeepFacingAfterTeleport : MonoBehaviour
     public TeleportationProvider provider;
     public XROrigin origin;
 
+    public float blinkSeconds = 0.25f;
+
+    FadeScreen fader;
+    bool blinked;
     float yawBefore;
     int fixAtFrame = -1;     // the teleport is applied a frame or two after it ends, so the fix waits for it
 
@@ -29,13 +33,20 @@ public class KeepFacingAfterTeleport : MonoBehaviour
 
     float Yaw() { return origin.Camera.transform.eulerAngles.y; }
 
-    void OnStarted(LocomotionProvider p) { yawBefore = Yaw(); }
+    void OnStarted(LocomotionProvider p)
+    {
+        yawBefore = Yaw();
+        if (!ControlOptions.ComfortBlink) return;
+        if (!fader) fader = origin.Camera.GetComponentInChildren<FadeScreen>(true);
+        if (fader) { fader.BlinkOut(); blinked = true; }
+    }
     void OnEnded(LocomotionProvider p) { fixAtFrame = Time.frameCount + 2; }
 
     void LateUpdate()
     {
         if (fixAtFrame < 0 || Time.frameCount < fixAtFrame) return;
         fixAtFrame = -1;
+        if (blinked && fader) { fader.BlinkIn(blinkSeconds); blinked = false; }
         float delta = Mathf.DeltaAngle(Yaw(), yawBefore);
         if (Mathf.Abs(delta) > 0.5f) origin.RotateAroundCameraUsingOriginUp(delta);
     }

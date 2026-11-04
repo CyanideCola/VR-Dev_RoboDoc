@@ -14,7 +14,7 @@ public class IntakeScreen : MonoBehaviour
 
     Robot current;
 
-    void Awake() { if (intakePanel) intakePanel.SetActive(false); }
+    void Awake() { AcceptLocked = false; if (intakePanel) intakePanel.SetActive(false); }
 
     void Start() { InvokeRepeating(nameof(RefreshStatus), 0f, 0.5f); }
 
@@ -57,9 +57,12 @@ static string Money(int v) =>
         TutorialEvents.Raise("RobotAtCounter");
     }
 
+    public static bool AcceptLocked;   // the tutorial's decline lesson: ACCEPT does nothing yet
+
     public void Accept()
     {
         if (current == null) return;
+        if (AcceptLocked) { Notifications.Push("Press DECLINE for this patient"); return; }
         if (!rack.HasFreeSlot)
         {
             if (complaintText) complaintText.text = "RACK FULL\nFinish a robot or decline.";

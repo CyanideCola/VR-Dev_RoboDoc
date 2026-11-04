@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TutorialManager : MonoBehaviour
 {
@@ -16,17 +17,27 @@ public class TutorialManager : MonoBehaviour
     public float reachDistance = 1.5f;
     public float demoEndDelay = 8f;           // seconds on the last Demo message before the menu
     public int maxPageChars = 110;            // longer messages are split into pages of about this size
-    public float secondsPerChar = 0.06f;      // how long a page stays up, per character
-    public float minPageSeconds = 3.5f;
+    public Button nextButton;                 // shown only on a message with more than one page
 
     readonly HashSet<string> seen = new HashSet<string>();
     readonly HashSet<ToolType> taught = new HashSet<ToolType>();
+    bool nextPressed;
     bool running;
     int arrivals;
     Coroutine pager;
 
-    void OnEnable() { TutorialEvents.Raised += OnEvent; }
-    void OnDisable() { TutorialEvents.Raised -= OnEvent; }
+    void OnEnable()
+    {
+        TutorialEvents.Raised += OnEvent;
+        if (nextButton) nextButton.onClick.AddListener(OnNext);
+    }
+
+    void OnDisable()
+    {
+        TutorialEvents.Raised -= OnEvent;
+        if (nextButton) nextButton.onClick.RemoveListener(OnNext);
+        IntakeScreen.AcceptLocked = false;
+    }
 
     // The Demo always runs the full lesson, so every visitor gets it
     void Start()
@@ -68,7 +79,7 @@ public class TutorialManager : MonoBehaviour
         Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.", shopTarget);
         yield return new WaitUntil(() => Near(shopStand));
 
-        Say("To your right is the shop. Buy the MALLET for 50 gold: point at the button and pull the trigger (index finger).", shopTarget);
+        Say("Buy the MALLET for 50 gold: point at the button in the shop and pull the trigger (index finger).", shopTarget);
         yield return WaitForAny("Bought:Hammer");
         Say("Now buy the SPRAY CAN, also 50 gold.", shopTarget);
         yield return WaitForAny("Bought:SprayCan");
@@ -105,8 +116,10 @@ public class TutorialManager : MonoBehaviour
         // Part two: energy, declining, the scanner and dismantling. Energy drains from here; the Demo has no clock.
         var gp = GameProgress.Instance;
         if (gp) gp.running = true;
+        IntakeScreen.AcceptLocked = true;   // this lesson is about declining
         Say("Your energy is the bar at the bottom right. Every robot in the rack drains it, and at zero the shift ends. Refills are sold in the store. Not every patient is worth it: press DECLINE on this one. Declining costs 10 energy.", computerTarget);
         yield return WaitForAny("Declined");
+        IntakeScreen.AcceptLocked = false;
 
         var stock = FindAnyObjectByType<ToolStock>();
         var scanner = stock ? System.Array.Find(stock.entries, e => e.tool == ToolType.Scanner) : null;
@@ -197,6 +210,7 @@ public class TutorialManager : MonoBehaviour
         panel.SetActive(true);
         if (arrow) arrow.SetTarget(target);
         if (pager != null) { StopCoroutine(pager); pager = null; }
+        if (nextButton) nextButton.gameObject.SetActive(false);
         var pages = Split(s);
         if (pages.Count <= 1) { text.text = s; return; }
         pager = StartCoroutine(Page(pages));
@@ -205,17 +219,23 @@ public class TutorialManager : MonoBehaviour
     void Hide()
     {
         if (pager != null) { StopCoroutine(pager); pager = null; }
+        if (nextButton) nextButton.gameObject.SetActive(false);
         panel.SetActive(false);
     }
 
+    // Each page stays until the player presses NEXT; after the last page it goes round to the first
     IEnumerator Page(List<string> pages)
     {
+        if (nextButton) nextButton.gameObject.SetActive(true);
         for (int i = 0; ; i = (i + 1) % pages.Count)
         {
             text.text = pages[i] + "\n<size=55%><color=#8FA6C7>" + (i + 1) + " / " + pages.Count + "</color></size>";
-            yield return new WaitForSeconds(Mathf.Max(minPageSeconds, pages[i].Length * secondsPerChar));
+            nextPressed = false;
+            yield return new WaitUntil(() => nextPressed);
         }
     }
+
+    void OnNext() { nextPressed = true; }
 
     // Whole sentences go on a page while they fit. A sentence that is too long is cut at a comma or a space.
     List<string> Split(string s)
