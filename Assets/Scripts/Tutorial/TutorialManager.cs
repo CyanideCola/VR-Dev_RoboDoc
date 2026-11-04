@@ -127,7 +127,7 @@ public class TutorialManager : MonoBehaviour
         Say("Some faults are hidden and only show up on a scanner. Teleport to the store and buy the SCANNER.", shopTarget);
         yield return WaitForAny("Bought:Scanner");
 
-        Say("Pick up the scanner: its screen shows every fault it can see. Go to the computer, aim it at the next patient and hold the trigger until it finds the hidden fault.", computerTarget);
+        Say("Pick up the scanner: its screen shows every fault it can see. Go to the rack, aim it at the next patient and hold the trigger until it finds the hidden fault.", computerTarget);
         float scannedFor = 0f;   // if the fault is on the far side, move on after 15 seconds of scanning
         yield return new WaitUntil(() => seen.Contains("Found") || (seen.Contains("Scanned") && (scannedFor += Time.deltaTime) > 15f));
 
