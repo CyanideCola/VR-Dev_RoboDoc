@@ -15,20 +15,24 @@ public class ChallengeResults : MonoBehaviour
 
     const string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     readonly int[] pick = new int[3];
-    float seconds;
+    float seconds;     // the score: clock time plus the missed-fault penalty
+    int missed;
     bool saved;
 
     void Awake() { if (root) root.SetActive(false); }
 
-    public void Show(float time)
+    public void Show(float clock, int missedFaults, float score)
     {
-        seconds = time;
+        seconds = score;
+        missed = missedFaults;
         saved = false;
         for (int i = 0; i < 3; i++) pick[i] = 0;   // AAA: each run at the fair is usually a new person
         root.SetActive(true);
         entryGroup.SetActive(true);
         menuButton.SetActive(false);
-        timeText.text = Leaderboard.Format(seconds);
+        timeText.text = missed > 0
+            ? "<size=45%>CLOCK " + Leaderboard.Format(clock) + "   MISSED " + missed + " (+" + Leaderboard.Format(score - clock) + ")</size>\n" + Leaderboard.Format(seconds)
+            : Leaderboard.Format(seconds);
         boardText.text = "";
         Redraw();
     }
@@ -51,7 +55,7 @@ public class ChallengeResults : MonoBehaviour
         if (saved) return;
         saved = true;
         string initials = "" + Alphabet[pick[0]] + Alphabet[pick[1]] + Alphabet[pick[2]];
-        int rank = Leaderboard.Add(initials, seconds);
+        int rank = Leaderboard.Add(initials, seconds, missed);
         entryGroup.SetActive(false);
         boardText.text = "RANK #" + rank + "\n\n" + Leaderboard.Table(boardRows, rank);
         menuButton.SetActive(true);

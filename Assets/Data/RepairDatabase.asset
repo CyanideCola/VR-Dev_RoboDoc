@@ -55,3 +55,45 @@ MonoBehaviour:
     workNeeded: 3
     minLevel: 3
     pay: 140
+  - symptom: Dented leg
+    region: 3
+    tool: 0
+    workNeeded: 3
+    minLevel: 0
+    pay: 100
+  - symptom: Loose screws
+    region: 0
+    tool: 1
+    workNeeded: 3
+    minLevel: 2
+    pay: 120
+  - symptom: Jammed joint
+    region: 0
+    tool: 7
+    workNeeded: 3
+    minLevel: 3
+    pay: 140
+  - symptom: Loose screws
+    region: 1
+    tool: 1
+    workNeeded: 3
+    minLevel: 2
+    pay: 120
+  - symptom: Jammed joint
+    region: 2
+    tool: 7
+    workNeeded: 3
+    minLevel: 3
+    pay: 140
+  - symptom: Loose screws
+    region: 3
+    tool: 1
+    workNeeded: 3
+    minLevel: 2
+    pay: 120
+  - symptom: Jammed joint
+    region: 3
+    tool: 7
+    workNeeded: 3
+    minLevel: 3
+    pay: 140

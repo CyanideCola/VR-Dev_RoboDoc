@@ -11,7 +11,8 @@ public static class Leaderboard
     public class Entry
     {
         public string initials;
-        public float seconds;
+        public float seconds;     // the score: clock time plus the penalty for missed hidden faults
+        public int missed;
         public string date;
     }
 
@@ -39,9 +40,9 @@ public static class Leaderboard
     }
 
     // Adds a run and returns its rank, 1 being the fastest
-    public static int Add(string initials, float seconds)
+    public static int Add(string initials, float seconds, int missed = 0)
     {
-        var e = new Entry { initials = initials, seconds = seconds, date = DateTime.Now.ToString("yyyy-MM-dd HH:mm") };
+        var e = new Entry { initials = initials, seconds = seconds, missed = missed, date = DateTime.Now.ToString("yyyy-MM-dd HH:mm") };
         var list = D.entries;
         int i = 0;
         while (i < list.Count && list[i].seconds <= seconds) i++;
@@ -69,7 +70,8 @@ public static class Leaderboard
         if (list.Count == 0) return "No times yet. Be the first!";
         for (int i = 0; i < rows && i < list.Count; i++)
         {
-            string line = (i + 1).ToString().PadLeft(2) + ".  " + list[i].initials + "   " + Format(list[i].seconds).PadLeft(8);
+            string line = (i + 1).ToString().PadLeft(2) + ".  " + list[i].initials + "   " + Format(list[i].seconds).PadLeft(8)
+                + (list[i].missed > 0 ? "  <size=60%>" + list[i].missed + " missed</size>" : "");
             sb.Append(i + 1 == highlightRank ? "<color=#FFC53D>" + line + "</color>" : line).Append('\n');
         }
         return sb.ToString();

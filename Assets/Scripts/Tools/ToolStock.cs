@@ -64,6 +64,18 @@ public class ToolStock : MonoBehaviour
         Spawn(e);
     }
 
+    public int partPrice = 100;
+
+    // A spare part for gold, so one part never costs a whole robot
+    public void BuyPart()
+    {
+        var gp = GameProgress.Instance;
+        if (!gp) return;
+        if (!gp.TrySpend(partPrice)) { Notifications.Push("Need " + partPrice + " gold"); return; }
+        gp.parts++;
+        Notifications.Push("Bought a spare part");
+    }
+
     public void TakePart()
     {
         var gp = GameProgress.Instance;

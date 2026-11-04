@@ -1047,6 +1047,139 @@ public static class RoboDocSetup
         EditorUtility.SetDirty(scroll);
     }
 
+    // ---------- Nov 8: fault colours and spread, BUY PART button ----------
+
+    // The spots a robot can be damaged at, as positions on its body (the robot's own space).
+    // The first of each kind is the original spot, which stays where it is.
+    static readonly (string source, string name, Vector3 pos, RepairRegion region)[] ExtraSpots =
+    {
+        ("HeadDent", "HeadDent #2", new Vector3(0.15f, 1.72f, 0.0f), RepairRegion.Head),
+        ("HeadDent", "HeadDent #3", new Vector3(-0.12f, 1.50f, 0.005f), RepairRegion.Head),
+        ("HeadDent", "HeadDent #4", new Vector3(0.10f, 1.83f, -0.10f), RepairRegion.Head),
+        ("ArmDent", "ArmDent #2", new Vector3(0.58f, 0.447f, -0.198f), RepairRegion.Arm),
+        ("ArmDent", "ArmDent #3", new Vector3(0.54f, 1.05f, -0.035f), RepairRegion.Arm),
+        ("ArmDent", "ArmDent #4", new Vector3(-0.54f, 1.05f, -0.055f), RepairRegion.Arm),
+        ("ArmDent", "LegDent #1", new Vector3(0.18f, 0.30f, -0.145f), RepairRegion.Leg),
+        ("ArmDent", "LegDent #2", new Vector3(-0.17f, 0.30f, -0.145f), RepairRegion.Leg),
+        ("ArmDent", "LegDent #3", new Vector3(-0.17f, 0.05f, -0.145f), RepairRegion.Leg),
+        ("Rust", "Rust #2", new Vector3(0.22f, 0.95f, 0.0f), RepairRegion.Torso),
+        ("Rust", "Rust #3", new Vector3(0.12f, 0.62f, -0.085f), RepairRegion.Torso),
+        ("LooseScrews", "LooseScrews #2", new Vector3(0.18f, 0.47f, -0.145f), RepairRegion.Leg),
+        ("LooseScrews", "LooseScrews #3", new Vector3(0.54f, 0.66f, -0.09f), RepairRegion.Arm),
+        ("LooseScrews", "LooseScrews #4", new Vector3(-0.25f, 1.55f, 0.0f), RepairRegion.Head),
+        ("JammedJoint", "JammedJoint #2", new Vector3(0.58f, 0.82f, -0.17f), RepairRegion.Arm),
+        ("JammedJoint", "JammedJoint #3", new Vector3(0.20f, 0.53f, -0.06f), RepairRegion.Torso),
+        ("JammedJoint", "JammedJoint #4", new Vector3(0.0f, 1.30f, -0.11f), RepairRegion.Head),
+    };
+
+    [MenuItem("Tools/RoboDoc/Apply Nov 8 Fixes")]
+    public static void RunNov8()
+    {
+        // Repair entries: dented legs, and screws / joints on any part of the body
+        var db = AssetDatabase.LoadAssetAtPath<RepairDatabase>("Assets/Data/RepairDatabase.asset");
+        void Ensure(string symptom, RepairRegion region, ToolType tool, float work, int minLevel, int pay)
+        {
+            if (!db.repairs.Any(r => r.symptom == symptom && r.region == region && r.tool == tool))
+                db.repairs.Add(new RepairEntry { symptom = symptom, region = region, tool = tool, workNeeded = work, minLevel = minLevel, pay = pay });
+        }
+        Ensure("Dented leg", RepairRegion.Leg, ToolType.Hammer, 3f, 0, 100);
+        foreach (RepairRegion r in System.Enum.GetValues(typeof(RepairRegion)))
+        {
+            Ensure("Loose screws", r, ToolType.Screwdriver, 3f, 2, 120);
+            Ensure("Jammed joint", r, ToolType.Drill, 3f, 3, 140);
+        }
+        EditorUtility.SetDirty(db);
+
+        // Spots on the robot, each kind in its own shade of red, orange or yellow
+        string path = Prefabs + "RobotRoot.prefab";
+        var robot = PrefabUtility.LoadPrefabContents(path);
+        var faults = robot.GetComponent<RobotFaults>();
+        foreach (var f in robot.GetComponentsInChildren<Fault>(true).ToArray())
+            if (f && f.name.Contains(" #")) { faults.possibleFaults.Remove(f); Object.DestroyImmediate(f.gameObject); }
+        foreach (var l in new[] { "LegDent #1", "LegDent #2", "LegDent #3" })
+        {
+            var stale = robot.transform.Find(l);
+            if (stale) { faults.possibleFaults.Remove(stale.GetComponent<Fault>()); Object.DestroyImmediate(stale.gameObject); }
+        }
+        faults.possibleFaults.RemoveAll(f => !f);
+
+        foreach (var s in ExtraSpots)
+        {
+            var src = robot.transform.Find(s.source);
+            var copy = Object.Instantiate(src.gameObject, src.parent);
+            copy.name = s.name;
+            copy.transform.localPosition = s.pos;
+            copy.transform.localRotation = src.localRotation;
+            var f = copy.GetComponent<Fault>();
+            f.region = s.region;
+            if (s.name.StartsWith("LegDent")) f.symptom = "Dented leg";
+            faults.possibleFaults.Add(f);
+        }
+
+        var tints = new Dictionary<string, Color>
+        {
+            { "HeadDent", Hex("E5383B") },      // red
+            { "ArmDent", Hex("FF7A1A") },       // orange
+            { "LegDent", Hex("FFB020") },       // amber
+            { "Rust", Hex("B8460F") },          // rust
+            { "LooseScrews", Hex("FFE14D") },   // yellow
+            { "JammedJoint", Hex("E8A317") },   // gold
+        };
+        foreach (var f in robot.GetComponentsInChildren<Fault>(true))
+        {
+            string kind = f.name.Contains(" #") ? f.name.Substring(0, f.name.IndexOf(" #")) : f.name;
+            if (!tints.TryGetValue(kind, out var c) || !f.brokenVisual) continue;
+            var r = f.brokenVisual.GetComponent<Renderer>();
+            if (r) r.sharedMaterial = Mat("Fault " + kind, c, true);
+        }
+        PrefabUtility.SaveAsPrefabAsset(robot, path);
+        PrefabUtility.UnloadPrefabContents(robot);
+
+        // BUY PART next to TAKE PART, in the shop as it is now
+        var game = EditorSceneManager.OpenScene(ScenePath);
+        var shop = Object.FindAnyObjectByType<ShopScreen>(FindObjectsInactive.Include);
+        var take = shop.takePart.transform;
+        var row = take.parent;
+        var oldBuy = row.Find("BuyPart");
+        if (oldBuy) Object.DestroyImmediate(oldBuy.gameObject);
+        var buy = Object.Instantiate(take.gameObject, row);
+        buy.name = "BuyPart";
+        var btn = buy.GetComponent<Button>();
+        for (int i = btn.onClick.GetPersistentEventCount() - 1; i >= 0; i--) UnityEventTools.RemovePersistentListener(btn.onClick, i);
+        var stock = shop.stock;
+        UnityEventTools.AddPersistentListener(btn.onClick, stock.BuyPart);
+        var label = buy.GetComponentInChildren<TMP_Text>(true);
+        label.text = "BUY " + stock.partPrice + "G";
+        if (shop.rows.Length > 0 && shop.rows[0].buyLabel) label.color = shop.rows[0].buyLabel.color;   // the shop's gold prices
+        var spacer = row.Find("Spacer");
+        buy.transform.SetSiblingIndex(spacer ? spacer.GetSiblingIndex() : take.GetSiblingIndex() + 1);
+        if (spacer) Object.DestroyImmediate(spacer.gameObject);
+        shop.buyPart = btn;
+        shop.buyPartLabel = label;
+        EditorUtility.SetDirty(shop);
+
+        // A big RACK sign high on the wall behind the rack, readable from the middle of the room
+        foreach (var tr in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (tr.name == "Rack Sign") { Object.DestroyImmediate(tr.gameObject); break; }
+        var rack = Object.FindAnyObjectByType<Rack>(FindObjectsInactive.Include);
+        var room = GameObject.Find("Room Walls");
+        float wallX = room ? RenderBounds(room).min.x + 0.2f : -9.15f;   // inner face of the west wall
+        var sign = new GameObject("Rack Sign");
+        sign.transform.position = new Vector3(wallX + 0.05f, 4.3f, rack.slots.Average(s => s.position.z));
+        sign.transform.rotation = Quaternion.LookRotation(Vector3.right * -1f);   // faces into the room
+        var signText = sign.AddComponent<TextMeshPro>();
+        signText.font = Font("ShareTechMono-Regular SDF");
+        signText.text = "RACK";
+        signText.fontSize = 24f;
+        signText.alignment = TextAlignmentOptions.Center;
+        signText.color = Cyan;
+        signText.textWrappingMode = TextWrappingModes.NoWrap;
+        signText.rectTransform.sizeDelta = new Vector2(8f, 2f);
+        EditorSceneManager.MarkSceneDirty(game);
+        EditorSceneManager.SaveScene(game);
+        AssetDatabase.SaveAssets();
+    }
+
     // ---------- Nov 7: pink computer, bigger antenna socket, NEXT button, comfort option ----------
 
     [MenuItem("Tools/RoboDoc/Apply Nov 7 Fixes")]

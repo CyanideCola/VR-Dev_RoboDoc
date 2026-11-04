@@ -54,7 +54,7 @@ public class TutorialManager : MonoBehaviour
         var gp = GameProgress.Instance;
         if (gp) gp.running = true;
         spawner.SpawnNext();
-        Say("CHALLENGE: hand back " + (gp ? gp.challengeRobots : 8) + " robots as fast as you can. Your mallet and spray can are at the store. The clock is running!", shopTarget);
+        Say("CHALLENGE: hand back " + (gp ? gp.challengeRobots : 8) + " robots as fast as you can. Your mallet and spray can are at the store. Each hidden fault you miss adds " + Mathf.RoundToInt(gp ? gp.missedPenaltySeconds : 30f) + " seconds. The clock is running!", shopTarget);
     }
 
     void OnEvent(string id)

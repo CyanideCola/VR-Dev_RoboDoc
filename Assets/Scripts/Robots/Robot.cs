@@ -51,13 +51,16 @@ public class Robot : MonoBehaviour
         state = State.Leaving;
         var rf = GetComponent<RobotFaults>();
         int pay = rf ? rf.Evaluate() : 0;
+        int missed = rf ? rf.HiddenNotFound : 0;
         var gp = GameProgress.Instance;
-        if (gp) { gp.money += pay; gp.RobotFinished(); }
+        if (gp) { gp.money += pay; gp.hiddenMissed += missed; gp.RobotFinished(); }   // missed faults count before the last robot ends the run
         if (poofPrefab) Instantiate(poofPrefab, transform.position + Vector3.up, Quaternion.identity);
         Notifications.Push("+" + pay + " G");
-        int missed = rf ? rf.HiddenNotFound : 0;
         if (missed > 0)   // nothing is said when the scanner found them all, or there were none
-            Notifications.Push("<color=#FFC53D>" + missed + (missed == 1 ? " hidden fault" : " hidden faults") + " not found</color>");
+        {
+            string penalty = gp && GameMode.IsChallenge ? "  +" + Mathf.RoundToInt(missed * gp.missedPenaltySeconds) + "s" : "";
+            Notifications.Push("<color=#FFC53D>" + missed + (missed == 1 ? " hidden fault" : " hidden faults") + " not found" + penalty + "</color>");
+        }
         if (pay > 0 && AudioManager.instance) AudioManager.instance.Play(moneySoundName);
         Destroy(gameObject);
     }

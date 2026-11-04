@@ -29,6 +29,9 @@ public class GameProgress : MonoBehaviour
     // Which level row each challenge robot uses, by spawn order (past the end, the last value repeats)
     public int[] challengeLevels = { 0, 0, 1, 1, 2, 2, 3, 4 };
     public float elapsed;                     // challenge stopwatch
+    public float missedPenaltySeconds = 30f;  // added to the score for every hidden fault handed back unfound
+    public int hiddenMissed;
+    public float Score { get { return elapsed + hiddenMissed * missedPenaltySeconds; } }
     public bool cleared;
     public ChallengeResults results;          // shown when the challenge is cleared
 
@@ -91,8 +94,8 @@ public class GameProgress : MonoBehaviour
     {
         running = false;
         cleared = true;
-        Notifications.Push("CHALLENGE CLEAR  " + Leaderboard.Format(elapsed));
-        if (results) results.Show(elapsed);
+        Notifications.Push("CHALLENGE CLEAR  " + Leaderboard.Format(Score));
+        if (results) results.Show(elapsed, hiddenMissed, Score);
         else Invoke(nameof(ToMenu), 6f);
     }
 

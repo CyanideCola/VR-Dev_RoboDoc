@@ -1,1 +1,1 @@
-public enum RepairRegion { Head, Arm, Torso }
+public enum RepairRegion { Head, Arm, Torso, Leg }

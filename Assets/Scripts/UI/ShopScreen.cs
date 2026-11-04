@@ -20,6 +20,8 @@ public class ShopScreen : MonoBehaviour
     public TMP_Text refillLabel;
     public Button takePart;
     public TMP_Text takePartLabel;
+    public Button buyPart;
+    public TMP_Text buyPartLabel;
     public TMP_Text moneyText;
 
     void Update()
@@ -43,6 +45,12 @@ public class ShopScreen : MonoBehaviour
         {
             takePart.interactable = gp.parts > 0;
             takePartLabel.text = "TAKE (" + gp.parts + ")";
+        }
+
+        if (buyPart && stock && gp)
+        {
+            buyPart.interactable = gp.money >= stock.partPrice;
+            if (buyPartLabel) buyPartLabel.text = "BUY " + stock.partPrice + "G";
         }
     }
 }
