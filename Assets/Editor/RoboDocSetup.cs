@@ -1145,6 +1145,31 @@ public static class RoboDocSetup
         System.IO.File.WriteAllText((System.Environment.GetEnvironmentVariable("SHOT_DIR") ?? ".") + "/handsetup.txt", log.ToString());
     }
 
+    // The hand rays felt magnetized: they snapped to anything within a 6 degree cone and were smoothed heavily.
+    // A narrower cone and lighter smoothing make them follow the hand.
+    [MenuItem("Tools/RoboDoc/Loosen Hand Rays")]
+    public static void RunHandRays()
+    {
+        var log = new System.Text.StringBuilder();
+        foreach (var path in new[] { ScenePath, MenuScenePath })
+        {
+            var scene = EditorSceneManager.OpenScene(path);
+            foreach (var caster in Object.FindObjectsByType<UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (!HandUnder(caster.transform)) continue;
+                var so = new SerializedObject(caster);
+                so.FindProperty("m_ConeCastAngle").floatValue = 2f;           // was 6
+                so.FindProperty("m_AngleStabilization").floatValue = 5f;      // was 20
+                so.FindProperty("m_PositionStabilization").floatValue = 0.1f; // was 0.25
+                so.ApplyModifiedPropertiesWithoutUndo();
+                log.Append($"{System.IO.Path.GetFileNameWithoutExtension(path)}: {caster.transform.parent.name} ray loosened\n");
+            }
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+        System.IO.File.WriteAllText((System.Environment.GetEnvironmentVariable("SHOT_DIR") ?? ".") + "/rays.txt", log.ToString());
+    }
+
     static bool HandUnder(Transform t)
     {
         for (; t; t = t.parent) if (t.name == "Left Hand" || t.name == "Right Hand") return true;
