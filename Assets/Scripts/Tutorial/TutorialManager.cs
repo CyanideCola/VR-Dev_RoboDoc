@@ -68,25 +68,37 @@ public class TutorialManager : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        Say(ControlOptions.LeftStickTeleport
-            ? "Welcome to RoboDoc! To start, push either thumbstick forward."
-            : "Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
-        yield return WaitForAny("TeleportRay");
+        // With tracked hands there is no thumbstick, so the first lesson is the pinch teleport itself
+        if (!HandTracking.Active)
+        {
+            Say(ControlOptions.LeftStickTeleport
+                ? "Welcome to RoboDoc! To start, push either thumbstick forward."
+                : "Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
+            yield return new WaitUntil(() => seen.Contains("TeleportRay") || HandTracking.Active);
+        }
 
-        Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", nearStand);
+        Say(HandTracking.Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.",
+            "Welcome to RoboDoc! You move by teleporting to the pads on the floor: point your hand at one, pinch and let go. Look behind you and try it."), nearStand);
         yield return new WaitUntil(() => Near(nearStand));
 
-        Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.", shopTarget);
+        Say(HandTracking.Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.",
+            "Let's buy your first tools. Point at the pad by the shop, pinch and let go."), shopTarget);
         yield return new WaitUntil(() => Near(shopStand));
 
-        Say("Buy the MALLET for 50 gold: point at the button in the shop and pull the trigger (index finger).", shopTarget);
+        Say(HandTracking.Say("Buy the MALLET for 50 gold: point at the button in the shop and pull the trigger (index finger).",
+            "Buy the MALLET for 50 gold: press its button in the shop with a finger, or point and pinch."), shopTarget);
         yield return WaitForAny("Bought:Hammer");
         Say("Now buy the SPRAY CAN, also 50 gold.", shopTarget);
         yield return WaitForAny("Bought:SprayCan");
 
-        Say(GrabMode.Toggle
-            ? "Reach out to the mallet and press the side grip button (middle finger) once. It stays in your hand until you press again."
-            : "Reach out to the mallet and hold the side grip button (middle finger). Let go to put it down.", shopTarget);
+        if (HandTracking.Active)
+            Say(GrabMode.Toggle
+                ? "Reach out to the mallet and pinch it once. It stays in your hand until you pinch again."
+                : "Reach out to the mallet and pinch to pick it up. Open your fingers to put it down.", shopTarget);
+        else
+            Say(GrabMode.Toggle
+                ? "Reach out to the mallet and press the side grip button (middle finger) once. It stays in your hand until you press again."
+                : "Reach out to the mallet and hold the side grip button (middle finger). Let go to put it down.", shopTarget);
         yield return WaitForAny("Grab:Mallet");
 
         Say("Teleport to the station by the computer.", computerTarget);
@@ -96,7 +108,8 @@ public class TutorialManager : MonoBehaviour
         spawner.SpawnNext();
         yield return WaitForAny("RobotAtCounter");
 
-        Say("Read the complaint, then point at ACCEPT and pull the trigger.", computerTarget);
+        Say(HandTracking.Say("Read the complaint, then point at ACCEPT and pull the trigger.",
+            "Read the complaint, then press ACCEPT with a finger, or point and pinch."), computerTarget);
         yield return WaitForAny("Accepted");
 
         Say("The robot is in the rack. It costs energy until you press DONE. Teleport to the rack station.", rackTarget);
@@ -127,7 +140,7 @@ public class TutorialManager : MonoBehaviour
         Say("Some faults are hidden and only show up on a scanner. Teleport to the store and buy the SCANNER.", shopTarget);
         yield return WaitForAny("Bought:Scanner");
 
-        Say("Pick up the scanner: its screen shows every fault it can see. Go to the computer, aim it at the next patient and hold the trigger until it finds the hidden fault.", computerTarget);
+        Say("Pick up the scanner: its screen shows every fault it can see. Go to the computer, aim it at the next patient and " + HandTracking.Say("hold the trigger", "hold it steady") + " until it finds the hidden fault.", computerTarget);
         float scannedFor = 0f;   // if the fault is on the far side, move on after 15 seconds of scanning
         yield return new WaitUntil(() => seen.Contains("Found") || (seen.Contains("Scanned") && (scannedFor += Time.deltaTime) > 15f));
 
@@ -180,7 +193,7 @@ public class TutorialManager : MonoBehaviour
             case ToolType.Hammer:
                 return f.symptom + ": use the MALLET. Swing it hard at the damaged spot, " + Mathf.CeilToInt(f.workNeeded) + " hits. Soft taps don't count.";
             case ToolType.SprayCan:
-                return f.symptom + ": use the SPRAY CAN. Aim at the rust and hold the trigger for " + Mathf.CeilToInt(f.workNeeded) + " seconds.";
+                return f.symptom + ": use the SPRAY CAN. " + HandTracking.Say("Aim at the rust and hold the trigger", "Hold the nozzle close to the rust (it sprays by itself)") + " for " + Mathf.CeilToInt(f.workNeeded) + " seconds.";
             case ToolType.Part:
                 return f.symptom + ": press TAKE PART in the store, then touch the part to the empty socket. Dismantle robots to get parts.";
             default:

@@ -1047,6 +1047,110 @@ public static class RoboDocSetup
         EditorUtility.SetDirty(scroll);
     }
 
+    // ---------- Hand support: pinch teleport in the game, the hands rig in the menu ----------
+
+    const string HandsRigPrefab = "Assets/Samples/XR Interaction Toolkit/3.3.2/Hands Interaction Demo/Prefabs/XR Origin Hands (XR Rig).prefab";
+
+    [MenuItem("Tools/RoboDoc/Apply Hand Support")]
+    public static void RunHands()
+    {
+        var log = new System.Text.StringBuilder();
+
+        // Game: the hand rays can select teleport pads, and HandTeleport makes a pinch on one teleport
+        var game = EditorSceneManager.OpenScene(ScenePath);
+        int teleportLayer = UnityEngine.XR.Interaction.Toolkit.InteractionLayerMask.GetMask("Teleport");
+        if (teleportLayer == 0) teleportLayer = 1 << 31;
+        int padPhysics = 0;
+        foreach (var pad in Object.FindObjectsByType<UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.BaseTeleportationInteractable>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (var c in pad.colliders) if (c) padPhysics |= 1 << c.gameObject.layer;
+        foreach (var nf in Object.FindObjectsByType<UnityEngine.XR.Interaction.Toolkit.Interactors.NearFarInteractor>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (!HandUnder(nf.transform)) continue;
+            nf.interactionLayers = nf.interactionLayers.value | teleportLayer;
+            EditorUtility.SetDirty(nf);
+            var caster = nf.GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactors.Casters.CurveInteractionCaster>();
+            if (caster && (caster.raycastMask.value & padPhysics) != padPhysics)
+            {
+                caster.raycastMask = caster.raycastMask.value | padPhysics;
+                EditorUtility.SetDirty(caster);
+            }
+            log.Append($"hand {nf.transform.parent.name}: layers={nf.interactionLayers.value} caster mask={(caster ? caster.raycastMask.value : -1)}\n");
+        }
+        var origin = Object.FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>(FindObjectsInactive.Include);
+        GetOrAdd<HandTeleport>(origin.gameObject);
+        EditorSceneManager.MarkSceneDirty(game);
+        EditorSceneManager.SaveScene(game);
+
+        // Menu: the old controller-only rig is replaced by the same hands rig the game uses
+        var menu = EditorSceneManager.OpenScene(MenuScenePath);
+        var old = GameObject.Find("Simple XR Player with Ray Interactor");
+        if (old)
+        {
+            var oldOrigin = old.GetComponentInChildren<Unity.XR.CoreUtils.XROrigin>(true);
+            var oldCam = oldOrigin.Camera;
+            // these live inside the old rig but serve the whole scene
+            foreach (var n in new[] { "EventSystem", "InteractionManager" })
+            {
+                var t = old.transform.Find(n);
+                if (t) t.SetParent(null, true);
+            }
+            var rig = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(HandsRigPrefab));
+            rig.transform.SetPositionAndRotation(oldOrigin.transform.position, oldOrigin.transform.rotation);
+            var newOrigin = rig.GetComponent<Unity.XR.CoreUtils.XROrigin>();
+            newOrigin.RequestedTrackingOriginMode = oldOrigin.RequestedTrackingOriginMode;
+            newOrigin.CameraYOffset = oldOrigin.CameraYOffset;
+            var loco = rig.transform.Find("Locomotion");
+            if (loco) loco.gameObject.SetActive(false);    // no moving or turning in the menu
+            foreach (var cim in rig.GetComponentsInChildren<UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.ControllerInputActionManager>(true))
+                cim.smoothMotionEnabled = true;            // and no teleport ray (the move it would enable has no provider)
+
+            var fader = oldCam.GetComponentInChildren<FadeScreen>(true);
+            if (fader)
+            {
+                fader.transform.SetParent(newOrigin.Camera.transform, false);
+                fader.transform.localPosition = new Vector3(0, 0, 0.015f);
+                fader.transform.localRotation = Quaternion.identity;
+                fader.transform.localScale = Vector3.one;
+            }
+
+            // anything else in the scene pointing into the old rig: the camera maps to the new camera, the rest is reported
+            foreach (var mb in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            {
+                if (!mb || mb.transform.IsChildOf(old.transform)) continue;
+                var so = new SerializedObject(mb);
+                var it = so.GetIterator();
+                bool changed = false;
+                while (it.Next(true))
+                {
+                    if (it.propertyType != SerializedPropertyType.ObjectReference || !it.objectReferenceValue) continue;
+                    var target = it.objectReferenceValue;
+                    var go = target is Component comp ? comp.gameObject : target as GameObject;
+                    if (!go || !go.transform.IsChildOf(old.transform)) continue;
+                    if (go == oldCam.gameObject)
+                    {
+                        it.objectReferenceValue = target is Camera ? newOrigin.Camera : target is Transform ? newOrigin.Camera.transform : (Object)newOrigin.Camera.gameObject;
+                        changed = true;
+                        log.Append($"menu: {mb.name}.{mb.GetType().Name} {it.propertyPath} -> new camera\n");
+                    }
+                    else log.Append($"menu: WARNING {mb.name}.{mb.GetType().Name} {it.propertyPath} still points at {go.name} in the old rig\n");
+                }
+                if (changed) so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            old.SetActive(false);   // switched off, not deleted
+            log.Append("menu: hands rig placed at " + rig.transform.position + "\n");
+        }
+        else log.Append("menu: old rig not found (already replaced?)\n");
+        EditorSceneManager.MarkSceneDirty(menu);
+        EditorSceneManager.SaveScene(menu);
+        System.IO.File.WriteAllText((System.Environment.GetEnvironmentVariable("SHOT_DIR") ?? ".") + "/handsetup.txt", log.ToString());
+    }
+
+    static bool HandUnder(Transform t)
+    {
+        for (; t; t = t.parent) if (t.name == "Left Hand" || t.name == "Right Hand") return true;
+        return false;
+    }
+
     // ---------- Nov 8: fault colours and spread, BUY PART button ----------
 
     // The spots a robot can be damaged at, as positions on its body (the robot's own space).

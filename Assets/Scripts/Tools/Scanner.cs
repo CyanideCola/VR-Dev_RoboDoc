@@ -4,7 +4,7 @@ using UnityEngine.XR.Interaction.Toolkit;
 using UnityEngine.XR.Interaction.Toolkit.Interactables;
 
 // Handheld scanner. While it is held, its screen (ScannerScreen) shows every fault it can see.
-// Holding the trigger scans: a hidden fault that stays in view for scanTime is revealed,
+// Holding the trigger scans (in a tracked hand it always scans, since a hand has no trigger): a hidden fault that stays in view for scanTime is revealed,
 // and from then on it is an ordinary fault that can be fixed.
 // Works on a robot waiting at the counter too, so the player can scan before accepting.
 [RequireComponent(typeof(XRGrabInteractable))]
@@ -24,6 +24,7 @@ public class Scanner : MonoBehaviour
 
     XRGrabInteractable grab;
     bool triggerDown;
+    bool heldByHand;
     float nextRefresh;
     readonly List<RobotFaults> robots = new List<RobotFaults>();
     readonly List<Fault> faults = new List<Fault>();
@@ -34,7 +35,7 @@ public class Scanner : MonoBehaviour
     readonly HashSet<RobotFaults> scannedRobots = new HashSet<RobotFaults>();
 
     public bool Held { get { return previewHeld || (grab && grab.isSelected); } }
-    public bool Scanning { get { return Held && (previewScanning || triggerDown); } }
+    public bool Scanning { get { return Held && (previewScanning || triggerDown || heldByHand); } }
     public IReadOnlyList<RobotFaults> Robots { get { return robots; } }
     public IReadOnlyList<Fault> Faults { get { return faults; } }
 
@@ -80,6 +81,7 @@ public class Scanner : MonoBehaviour
         grab.activated.AddListener(OnActivated);
         grab.deactivated.AddListener(OnDeactivated);
         grab.selectExited.AddListener(OnReleased);
+        grab.selectEntered.AddListener(OnGrabbed);
     }
 
     void OnDisable()
@@ -87,13 +89,16 @@ public class Scanner : MonoBehaviour
         grab.activated.RemoveListener(OnActivated);
         grab.deactivated.RemoveListener(OnDeactivated);
         grab.selectExited.RemoveListener(OnReleased);
+        grab.selectEntered.RemoveListener(OnGrabbed);
         triggerDown = false;
+        heldByHand = false;
         if (beam) beam.enabled = false;
     }
 
     void OnActivated(ActivateEventArgs a) { triggerDown = true; }
     void OnDeactivated(DeactivateEventArgs a) { triggerDown = false; }
-    void OnReleased(SelectExitEventArgs a) { triggerDown = false; }
+    void OnReleased(SelectExitEventArgs a) { triggerDown = false; heldByHand = grab.isSelected && HandTracking.IsHand(grab.firstInteractorSelecting); }
+    void OnGrabbed(SelectEnterEventArgs a) { heldByHand = HandTracking.IsHand(a.interactorObject); }
 
     void Update()
     {

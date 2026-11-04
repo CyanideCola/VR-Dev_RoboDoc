@@ -14,6 +14,7 @@ public class SprayCan : MonoBehaviour
 
     XRGrabInteractable grab;
     bool spraying;
+    bool heldByHand;                    // a tracked hand has no trigger: the can sprays by itself while rust is in reach
     readonly HashSet<Fault> hit = new HashSet<Fault>();
 
     void Awake() { grab = GetComponent<XRGrabInteractable>(); }
@@ -23,6 +24,7 @@ public class SprayCan : MonoBehaviour
         grab.activated.AddListener(OnActivated);
         grab.deactivated.AddListener(OnDeactivated);
         grab.selectExited.AddListener(OnReleased);
+        grab.selectEntered.AddListener(OnGrabbed);
     }
 
     void OnDisable()
@@ -30,12 +32,15 @@ public class SprayCan : MonoBehaviour
         grab.activated.RemoveListener(OnActivated);
         grab.deactivated.RemoveListener(OnDeactivated);
         grab.selectExited.RemoveListener(OnReleased);
+        grab.selectEntered.RemoveListener(OnGrabbed);
+        heldByHand = false;
         Stop();
     }
 
     void OnActivated(ActivateEventArgs a) { Begin(); }
     void OnDeactivated(DeactivateEventArgs a) { Stop(); }
-    void OnReleased(SelectExitEventArgs a) { Stop(); }
+    void OnReleased(SelectExitEventArgs a) { Stop(); heldByHand = grab.isSelected && HandTracking.IsHand(grab.firstInteractorSelecting); }
+    void OnGrabbed(SelectEnterEventArgs a) { heldByHand = HandTracking.IsHand(a.interactorObject); }
 
     void Begin()
     {
@@ -53,6 +58,12 @@ public class SprayCan : MonoBehaviour
 
     void Update()
     {
+        if (heldByHand && nozzle)
+        {
+            bool rust = RustInReach();
+            if (rust && !spraying) Begin();
+            else if (!rust && spraying) Stop();
+        }
         if (!spraying || !nozzle) return;
         hit.Clear();
         Vector3 end = nozzle.position + nozzle.forward * range;
@@ -62,6 +73,17 @@ public class SprayCan : MonoBehaviour
             if (f && hit.Add(f)) f.Work(ToolType.SprayCan, Time.deltaTime);   // seconds of spraying
         }
     }
+    bool RustInReach()
+    {
+        Vector3 end = nozzle.position + nozzle.forward * range;
+        foreach (var c in Physics.OverlapCapsule(nozzle.position, end, radius, ~0, QueryTriggerInteraction.Collide))
+        {
+            var f = c.GetComponentInParent<Fault>();
+            if (f && f.requiredTool == ToolType.SprayCan && !f.isFixed && f.Visible) return true;
+        }
+        return false;
+    }
+
     void OnDrawGizmosSelected()
     {
         if (!nozzle) return;
