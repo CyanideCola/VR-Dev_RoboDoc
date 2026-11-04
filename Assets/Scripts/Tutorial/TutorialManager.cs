@@ -57,7 +57,9 @@ public class TutorialManager : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        Say("Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
+        Say(ControlOptions.LeftStickTeleport
+            ? "Welcome to RoboDoc! To start, push either thumbstick forward."
+            : "Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
         yield return WaitForAny("TeleportRay");
 
         Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", nearStand);
@@ -72,8 +74,8 @@ public class TutorialManager : MonoBehaviour
         yield return WaitForAny("Bought:SprayCan");
 
         Say(GrabMode.Toggle
-            ? "Press the middle finger trigger to pick up the mallet. Press it again to put it down."
-            : "Hold the middle finger trigger to pick up the mallet. Let go to put it down.", shopTarget);
+            ? "Reach out to the mallet and press the side grip button (middle finger) once. It stays in your hand until you press again."
+            : "Reach out to the mallet and hold the side grip button (middle finger). Let go to put it down.", shopTarget);
         yield return WaitForAny("Grab:Mallet");
 
         Say("Teleport to the station by the computer.", computerTarget);

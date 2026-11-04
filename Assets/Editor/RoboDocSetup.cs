@@ -749,6 +749,7 @@ public static class RoboDocSetup
         var backImg = back.gameObject.AddComponent<Image>();
         backImg.color = new Color(Ink.r, Ink.g, Ink.b, 0.9f);
         backImg.raycastTarget = false;
+        backImg.material = OnTopMaterial();   // never hidden by a part of the robot
         var fillRt = Rect("Fill", rt, Vector2.zero, Vector2.one, new Vector2(2f, 2f), new Vector2(-2f, -2f));
         var fill = fillRt.gameObject.AddComponent<Image>();
         fill.sprite = WhiteSprite();
@@ -757,6 +758,7 @@ public static class RoboDocSetup
         fill.fillOrigin = (int)Image.OriginHorizontal.Left;
         fill.color = Cyan;
         fill.raycastTarget = false;
+        fill.material = OnTopMaterial();
         var bar = holder.AddComponent<FaultProgressBar>();
         bar.fault = f;
         bar.visual = visual;
@@ -854,6 +856,195 @@ public static class RoboDocSetup
         if (!db.repairs.Any(r => r.tool == ToolType.Drill))
             db.repairs.Add(new RepairEntry { symptom = "Jammed joint", region = RepairRegion.Arm, tool = ToolType.Drill, workNeeded = 3f, minLevel = 3, pay = 140 });
         EditorUtility.SetDirty(db);
+    }
+
+    // ---------- Nov 5: progress bars drawn on top, and the room walls from the art team ----------
+
+    [MenuItem("Tools/RoboDoc/Apply Nov 5 Fixes")]
+    public static void RunNov5()
+    {
+        // Progress bars again, now drawn over everything
+        string path = Prefabs + "RobotRoot.prefab";
+        var robot = PrefabUtility.LoadPrefabContents(path);
+        foreach (var f in robot.GetComponentsInChildren<Fault>(true)) AddProgressBar(f);
+        PrefabUtility.SaveAsPrefabAsset(robot, path);
+        PrefabUtility.UnloadPrefabContents(robot);
+
+        PlaceRoom();
+        AssetDatabase.SaveAssets();
+    }
+
+    static Material RoomMaterial(string wall, Texture2D picture)
+    {
+        if (!AssetDatabase.IsValidFolder("Assets/Art/Materials/Room")) AssetDatabase.CreateFolder("Assets/Art/Materials", "Room");
+        string path = "Assets/Art/Materials/Room/" + wall + ".mat";
+        var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (!m) { m = new Material(Shader.Find("Standard")); AssetDatabase.CreateAsset(m, path); }
+        m.shader = Shader.Find("Standard");
+        m.mainTexture = picture;
+        m.color = Color.white;
+        m.SetFloat("_Glossiness", 0.1f);
+        m.SetFloat("_Metallic", 0f);
+        EditorUtility.SetDirty(m);
+        return m;
+    }
+
+    static Material OnTopMaterial()
+    {
+        const string path = Mats + "Progress Bar.mat";
+        var shader = Shader.Find("RoboDoc/UI On Top");
+        if (!shader) throw new System.Exception("Shader RoboDoc/UI On Top not found");
+        var m = AssetDatabase.LoadAssetAtPath<Material>(path);
+        if (!m) { m = new Material(shader); AssetDatabase.CreateAsset(m, path); }
+        m.shader = shader;
+        EditorUtility.SetDirty(m);
+        return m;
+    }
+
+    // proto_room is four walls with no floor (the scene already has one). It is placed so the spawn wall sits just behind the
+    // door panel, the room is centred on the play area from side to side, and the wall bottoms are on the floor.
+    // The old placeholder walls are switched off, not deleted.
+    static void PlaceRoom()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath);
+        var log = new System.Text.StringBuilder();
+
+        foreach (var tr in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (tr.name == "Room Walls" && tr.parent == null) { Object.DestroyImmediate(tr.gameObject); break; }
+
+        var room = (GameObject)PrefabUtility.InstantiatePrefab(LoadModel("proto_room.blend"));
+        room.name = "Room Walls";
+        room.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
+        var b = RenderBounds(room);
+        var spawner = Object.FindAnyObjectByType<Spawner>(FindObjectsInactive.Include);
+        const float wallThickness = 0.2f;
+        float spawnInnerFace = b.max.x - wallThickness;                      // in the model
+        float dx = (spawner.transform.position.x + 0.1f) - spawnInnerFace;   // just behind the door panel
+        float dz = -b.center.z;                                              // centred side to side
+        float dy = -b.min.y;                                                 // wall bottoms on the floor
+        room.transform.position = new Vector3(dx, dy, dz);
+        log.Append($"model bounds min={b.min:F2} max={b.max:F2}; placed at offset {room.transform.position:F2}\n");
+
+        // The model comes with its materials but not the pictures: each wall material named "X Texture" gets X.png
+        foreach (var r in room.GetComponentsInChildren<MeshRenderer>())
+        {
+            var mats = r.sharedMaterials;
+            for (int i = 0; i < mats.Length; i++)
+            {
+                if (!mats[i] || !mats[i].name.EndsWith(" Texture")) continue;
+                string wall = mats[i].name.Substring(0, mats[i].name.Length - " Texture".Length);
+                var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(Mats + "Models/" + wall + ".png");
+                if (!tex) { log.Append("no picture for " + mats[i].name + "\n"); continue; }
+                mats[i] = RoomMaterial(wall, tex);
+                log.Append($"{r.name}: material {mats[i].name} uses {tex.name}.png\n");
+            }
+            r.sharedMaterials = mats;
+        }
+
+        foreach (var r in room.GetComponentsInChildren<MeshRenderer>())
+        {
+            if (r.GetComponent<Collider>()) continue;
+            var bc = r.gameObject.AddComponent<BoxCollider>();
+            bc.center = r.localBounds.center;
+            bc.size = r.localBounds.size;
+        }
+        var nb = RenderBounds(room);
+        log.Append($"room now spans x {nb.min.x:F2}..{nb.max.x:F2}, z {nb.min.z:F2}..{nb.max.z:F2}, y {nb.min.y:F2}..{nb.max.y:F2}\n");
+
+        var old = GameObject.Find("Room");
+        if (old)
+            foreach (Transform c in old.transform)
+                if (c.name.StartsWith("Wall (") && c.gameObject.activeSelf) { c.gameObject.SetActive(false); log.Append("switched off " + c.name + "\n"); }
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+        System.IO.File.WriteAllText((System.Environment.GetEnvironmentVariable("SHOT_DIR") ?? ".") + "/room.txt", log.ToString());
+    }
+
+    // ---------- Nov 6: reach for short players, control options, scrolling credits ----------
+
+    [MenuItem("Tools/RoboDoc/Apply Nov 6 Fixes")]
+    public static void RunNov6()
+    {
+        var game = EditorSceneManager.OpenScene(ScenePath);
+        var origin = Object.FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>(FindObjectsInactive.Include);
+        var assist = origin.GetComponent<PlayerHeightAssist>();
+        if (!assist) assist = origin.gameObject.AddComponent<PlayerHeightAssist>();
+        assist.origin = origin;
+        EditorSceneManager.MarkSceneDirty(game);
+        EditorSceneManager.SaveScene(game);
+
+        var start = EditorSceneManager.OpenScene(MenuScenePath);
+        var menu = Object.FindAnyObjectByType<GameStartMenu>(FindObjectsInactive.Include);
+        AddTeleportOption(menu);
+        AddScrollingCredits(menu);
+        EditorSceneManager.MarkSceneDirty(start);
+        EditorSceneManager.SaveScene(start);
+        AssetDatabase.SaveAssets();
+    }
+
+    // A second row on the options page, copied from the Grab row
+    static void AddTeleportOption(GameStartMenu menu)
+    {
+        var opts = menu.options.GetComponent<SetOptionFromUI>();
+        var row = opts.grabDropdown.transform.parent;
+        var old = row.parent.Find("Teleport Options");
+        if (old) Object.DestroyImmediate(old.gameObject);
+
+        var copy = Object.Instantiate(row.gameObject, row.parent);
+        copy.name = "Teleport Options";
+        var label = copy.GetComponentInChildren<TMP_Text>(true);
+        label.text = "Teleport";
+        var labelRt = (RectTransform)label.transform;
+        var drop = copy.GetComponentInChildren<TMP_Dropdown>(true);
+        var dropRt = (RectTransform)drop.transform;
+        const float rowGap = 150f;
+        labelRt.anchoredPosition += Vector2.down * rowGap;
+        dropRt.anchoredPosition += Vector2.down * rowGap;
+        opts.teleportDropdown = drop;
+        EditorUtility.SetDirty(opts);
+
+        var grabLabel = row.GetComponentInChildren<TMP_Text>(true);
+        grabLabel.text = "Grab";
+    }
+
+    // The credits text goes inside a masked window that stops above the BACK button, and rolls
+    static void AddScrollingCredits(GameStartMenu menu)
+    {
+        var page = menu.about.transform;
+        var old = page.Find("Credits Window");
+        var text = page.GetComponentsInChildren<TMP_Text>(true).FirstOrDefault(t => t.text.StartsWith("Credits") || t.transform.parent.name == "Credits Window");
+        if (old) { text = old.GetComponentInChildren<TMP_Text>(true); }
+
+        GameObject window = old ? old.gameObject : new GameObject("Credits Window", typeof(RectTransform), typeof(RectMask2D));
+        var wrt = (RectTransform)window.transform;
+        wrt.SetParent(page, false);
+        wrt.SetAsFirstSibling();
+        // from just above the BACK button (its top is at -219) up to the top of the page
+        wrt.anchorMin = wrt.anchorMax = new Vector2(0.5f, 0.5f);
+        wrt.pivot = new Vector2(0.5f, 0.5f);
+        wrt.sizeDelta = new Vector2(1074f, 660f);
+        wrt.anchoredPosition = new Vector2(0f, 120f);   // spans y -210 .. +450
+
+        var trt = text.rectTransform;
+        trt.SetParent(wrt, false);
+        trt.anchorMin = new Vector2(0f, 1f); trt.anchorMax = new Vector2(1f, 1f);
+        trt.pivot = new Vector2(0.5f, 1f);
+        trt.anchoredPosition = Vector2.zero;
+        trt.sizeDelta = new Vector2(0f, 100f);
+        text.alignment = TextAlignmentOptions.Top;
+        text.enableAutoSizing = false;
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.overflowMode = TextOverflowModes.Overflow;
+        var fit = text.GetComponent<ContentSizeFitter>();
+        if (!fit) fit = text.gameObject.AddComponent<ContentSizeFitter>();
+        fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        fit.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+        var scroll = window.GetComponent<CreditsScroll>();
+        if (!scroll) scroll = window.AddComponent<CreditsScroll>();
+        scroll.content = trt;
+        EditorUtility.SetDirty(scroll);
     }
 
     [MenuItem("Tools/RoboDoc/Build Scanner Screen")]

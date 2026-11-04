@@ -62,11 +62,10 @@ public class Fault : MonoBehaviour
 
     public void Reveal() { revealed = true; Refresh(); }
 
-    // An unscanned hidden fault looks like a healthy part
+    // An unscanned hidden fault draws nothing at all: neither the damage nor a repaired look
     void Refresh()
     {
-        bool showBroken = !isFixed && Visible;
-        if (brokenVisual) brokenVisual.SetActive(showBroken);
-        if (fixedVisual) fixedVisual.SetActive(!showBroken);
+        if (brokenVisual) brokenVisual.SetActive(!isFixed && Visible);
+        if (fixedVisual) fixedVisual.SetActive(isFixed);
     }
 }
