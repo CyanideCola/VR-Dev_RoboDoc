@@ -285,6 +285,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 8433045870956438475}
     m_Modifications:
+    - target: {fileID: -6874540395504895234, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5366b952e9e5ee142889c9c78e05a033, type: 2}
+    - target: {fileID: -5705606388425799112, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 16389987c65c798429d60cd6b247bdc3, type: 2}
     - target: {fileID: -4216859302048453862, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.049123783
@@ -341,6 +349,26 @@ PrefabInstance:
       propertyPath: m_Name
       value: proto_drill
       objectReference: {fileID: 0}
+    - target: {fileID: 601853603952716637, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 16389987c65c798429d60cd6b247bdc3, type: 2}
+    - target: {fileID: 2345211957819186503, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5366b952e9e5ee142889c9c78e05a033, type: 2}
+    - target: {fileID: 2345211957819186503, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 7ada5e70848359447803619b7c73c451, type: 2}
+    - target: {fileID: 4328471970120001894, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 7ada5e70848359447803619b7c73c451, type: 2}
+    - target: {fileID: 4328471970120001894, guid: 3d49706ff4a04904d82cff609dbd226c, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 5366b952e9e5ee142889c9c78e05a033, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
