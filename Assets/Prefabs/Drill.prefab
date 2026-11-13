@@ -45,6 +45,7 @@ GameObject:
   - component: {fileID: 8115351313851289770}
   - component: {fileID: 676587870990265319}
   - component: {fileID: 6034279778783920961}
+  - component: {fileID: 6140699607286964646}
   m_Layer: 0
   m_Name: Drill
   m_TagString: Untagged
@@ -243,6 +244,7 @@ MonoBehaviour:
   minSpeed: 0
   hitCooldown: 0.3
   hitSoundName: 
+  hitVariants: 5
 --- !u!114 &676587870990265319
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -277,6 +279,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.07600103, y: 0.21117616, z: 0.26}
   m_Center: {x: 0, y: 0.110390574, z: -0.05242458}
+--- !u!114 &6140699607286964646
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1373092080293619327}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 841e578ea1ad24d4587eef8e27223aab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ItemImpactSound
+  soundName: item_hit_surface
+  minImpactSpeed: 0.8
+  cooldown: 0.15
 --- !u!1001 &2676720810098547467
 PrefabInstance:
   m_ObjectHideFlags: 0

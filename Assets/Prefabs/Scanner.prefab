@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 393321490487652730}
   - component: {fileID: 2917042300163068305}
   - component: {fileID: 8146771923792047467}
+  - component: {fileID: 7697163649064957627}
   m_Layer: 0
   m_Name: Scanner
   m_TagString: Untagged
@@ -255,6 +256,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.22, y: 0.11, z: 0.06}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7697163649064957627
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1110223303691545935}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 841e578ea1ad24d4587eef8e27223aab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ItemImpactSound
+  soundName: item_hit_surface
+  minImpactSpeed: 0.8
+  cooldown: 0.15
 --- !u!1 &1598638394205734969
 GameObject:
   m_ObjectHideFlags: 0

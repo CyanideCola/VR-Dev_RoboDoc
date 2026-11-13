@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 1589099848028287749}
   - component: {fileID: 3941994372678400541}
   - component: {fileID: 7533931768004375369}
+  - component: {fileID: 7618894987141294980}
   m_Layer: 0
   m_Name: SparePart
   m_TagString: Untagged
@@ -226,6 +227,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RobotPart
   installSoundName: 
+--- !u!114 &7618894987141294980
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7338356908519839951}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 841e578ea1ad24d4587eef8e27223aab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ItemImpactSound
+  soundName: item_hit_surface
+  minImpactSpeed: 0.8
+  cooldown: 0.15
 --- !u!1001 &4290090578936144685
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 6053792275347731264}
   - component: {fileID: 6740977743955340483}
   - component: {fileID: 8961083583708333526}
+  - component: {fileID: 3623193551705573443}
   m_Layer: 0
   m_Name: Screwdriver
   m_TagString: Untagged
@@ -212,6 +213,7 @@ MonoBehaviour:
   minSpeed: 0
   hitCooldown: 0.3
   hitSoundName: 
+  hitVariants: 5
 --- !u!114 &6740977743955340483
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -246,6 +248,21 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.0401911, y: 0.0401911, z: 0.22}
   m_Center: {x: 0, y: 0, z: 0.052659366}
+--- !u!114 &3623193551705573443
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1283907986360734066}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 841e578ea1ad24d4587eef8e27223aab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ItemImpactSound
+  soundName: item_hit_surface
+  minImpactSpeed: 0.8
+  cooldown: 0.15
 --- !u!1 &1511165906529843565
 GameObject:
   m_ObjectHideFlags: 0
