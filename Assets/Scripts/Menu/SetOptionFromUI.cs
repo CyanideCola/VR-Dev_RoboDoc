@@ -11,9 +11,7 @@ public class SetOptionFromUI : MonoBehaviour
 
     public TMPro.TMP_Dropdown teleportDropdown;
     public TMPro.TMP_Dropdown comfortDropdown;
-
-    public void ReplayTutorial() { PlayerPrefs.DeleteKey("tutorialDone"); PlayerPrefs.Save(); }
-
+    
     private void Start()
     {
         volumeSlider.SetValueWithoutNotify(PlayerPrefs.GetFloat("volume", 1f));
