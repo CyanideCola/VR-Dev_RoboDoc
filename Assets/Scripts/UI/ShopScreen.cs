@@ -23,9 +23,12 @@ public class ShopScreen : MonoBehaviour
     public Button buyPart;
     public TMP_Text buyPartLabel;
     public TMP_Text moneyText;
+    float next;
 
     void Update()
     {
+        if (Time.unscaledTime < next) return;
+        next = Time.unscaledTime + 0.25f;
         var gp = GameProgress.Instance;
         if (moneyText && gp) moneyText.text = gp.money.ToString("N0") + " G";
 

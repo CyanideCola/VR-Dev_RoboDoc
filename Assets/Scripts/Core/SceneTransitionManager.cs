@@ -28,7 +28,7 @@ public class SceneTransitionManager : MonoBehaviour
     IEnumerator GoToSceneRoutine(int sceneIndex)
     {
         fadeScreen.FadeOut();
-        yield return new WaitForSeconds(fadeScreen.fadeDuration);
+        yield return new WaitForSecondsRealtime(fadeScreen.fadeDuration);
 
         //Launch the new scene
         SceneManager.LoadScene(sceneIndex);
@@ -52,7 +52,7 @@ public class SceneTransitionManager : MonoBehaviour
         float timer = 0;
         while(timer <= fadeScreen.fadeDuration || operation.progress < 0.9f)
         {
-            timer += Time.deltaTime;
+            timer += Time.unscaledDeltaTime;
             yield return null;
         }
 

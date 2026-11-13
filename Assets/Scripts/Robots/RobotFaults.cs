@@ -111,7 +111,6 @@ public class RobotFaults : MonoBehaviour
         foreach (var f in reported) if (f.isFixed) { total += f.pay; fixedCount++; }
         foreach (var f in hidden) if (f.isFixed) { total += f.pay * hiddenPayFactor; fixedCount++; }
         if (fixedCount > 1) total *= 1f + comboBonus * (fixedCount - 1);
-        Debug.Log("Repairs fixed: " + fixedCount + " | payout " + Mathf.RoundToInt(total));
         return Mathf.RoundToInt(total);
     }
 }

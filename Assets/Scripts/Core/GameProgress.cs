@@ -34,6 +34,7 @@ public class GameProgress : MonoBehaviour
     public float Score { get { return elapsed + hiddenMissed * missedPenaltySeconds; } }
     public bool cleared;
     public ChallengeResults results;          // shown when the challenge is cleared
+    public GameOverScreen gameOver;
 
     int robotsSpawned;
 
@@ -86,7 +87,6 @@ public class GameProgress : MonoBehaviour
             robotsDoneThisLevel = 0;
             timeLeft = Current.timeLimit;
             Notifications.Push("LEVEL " + (level + 1));
-            Debug.Log("Level " + (level + 1) + " reached");
         }
     }
 
@@ -104,7 +104,7 @@ public class GameProgress : MonoBehaviour
         if (!running) return;
         running = false;
         Notifications.Push(why);
-        Invoke(nameof(ToMenu), 4f);
+        if (gameOver) gameOver.Show(why); else Invoke(nameof(ToMenu), 4f);
     }
 
     public void ToMenu()

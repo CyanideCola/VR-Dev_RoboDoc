@@ -65,7 +65,7 @@ public class FadeScreen : MonoBehaviour
         while(timer < duration)
         {
             SetAlpha(Mathf.Lerp(alphaIn, alphaOut, fadeCurve.Evaluate(timer / duration)));
-            timer += Time.deltaTime;
+            timer += Time.unscaledDeltaTime;
             yield return null;
         }
 

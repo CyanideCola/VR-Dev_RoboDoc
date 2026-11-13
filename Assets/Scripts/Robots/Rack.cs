@@ -6,6 +6,7 @@ public class Rack : MonoBehaviour
 {
     public Transform[] slots;          // left to right, as the player faces the rack
     public GameObject[] doneButtons;   // one per slot, shown only while that slot is occupied
+    TMP_Text[] labels;
     public int OccupiedCount { get { int n = 0; foreach (var o in occupants) if (o != null) n++; return n; } }
 
     Robot[] occupants;
@@ -13,19 +14,21 @@ public class Rack : MonoBehaviour
     void Awake()
     {
         occupants = new Robot[slots.Length];
-        // DISMANTLE is the longest label: keep every button label on one line, shrinking to fit
-        if (doneButtons != null)
-            foreach (var b in doneButtons)
-            {
-                if (!b) continue;
-                var label = b.GetComponentInChildren<TMP_Text>(true);
-                if (!label) continue;
-                label.textWrappingMode = TextWrappingModes.NoWrap;
-                label.overflowMode = TextOverflowModes.Overflow;
-                label.enableAutoSizing = true;
-                label.fontSizeMin = 14f;
-                label.fontSizeMax = 40f;
-            }
+        int n = doneButtons != null ? doneButtons.Length : 0;
+        labels = new TMP_Text[n];
+        for (int i = 0; i < n; i++)
+        {
+            var b = doneButtons[i];
+            if (!b) continue;
+            var label = b.GetComponentInChildren<TMP_Text>(true);
+            if (!label) continue;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            label.overflowMode = TextOverflowModes.Overflow;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 14f;
+            label.fontSizeMax = 40f;
+            labels[i] = label;
+        }
         Refresh();
     }
 
@@ -68,18 +71,19 @@ public class Rack : MonoBehaviour
     void Update() { Refresh(); }   // labels follow repairs (and over-hits) as they happen
 
     void Refresh()
+{
+    if (doneButtons == null) return;
+    for (int i = 0; i < doneButtons.Length && i < occupants.Length; i++)
     {
-        if (doneButtons == null) return;
-        for (int i = 0; i < doneButtons.Length && i < occupants.Length; i++)
-        {
-            if (!doneButtons[i]) continue;
-            Robot r = occupants[i];
-            doneButtons[i].SetActive(r != null);
-            if (r == null) continue;
-            var label = doneButtons[i].GetComponentInChildren<TMP_Text>(true);
-            if (label) label.text = r.AnyFixed ? "DONE" : "DISMANTLE";
-        }
+        if (!doneButtons[i]) continue;
+        Robot r = occupants[i];
+        bool on = r != null;
+        if (doneButtons[i].activeSelf != on) doneButtons[i].SetActive(on);
+        if (!on || !labels[i]) continue;
+        string want = r.AnyFixed ? "DONE" : "DISMANTLE";
+        if (labels[i].text != want) labels[i].text = want;
     }
+}
 
     public string Summary()
     {

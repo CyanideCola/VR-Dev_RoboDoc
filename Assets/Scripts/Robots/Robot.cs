@@ -6,9 +6,9 @@ public class Robot : MonoBehaviour
     public State state = State.Spawning;
     public RobotWalker walker;
     public GameObject poofPrefab;       // optional smoke effect
-    public MoneyPopup popupPrefab;      // floating +$ text
-    public float popupHeight = 1.9f;    // above the robot's feet
     public string moneySoundName = "Money";
+    RobotFaults faults;
+    public bool AnyFixed { get { if (!faults) faults = GetComponent<RobotFaults>(); return faults && faults.AnyFixed; } }
 
     void Awake()
     {

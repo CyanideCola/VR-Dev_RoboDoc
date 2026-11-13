@@ -28,11 +28,15 @@ public class GrabDebug : MonoBehaviour
 
     void OnEnter(SelectEnterEventArgs a)
     {
+        #if UNITY_EDITOR
         Debug.Log("GRAB    " + Path(a.interactorObject.transform) + " t=" + Time.time.ToString("F2"));
+        #endif
     }
 
     void OnExit(SelectExitEventArgs a)
     {
+        #if UNITY_EDITOR
         Debug.Log("RELEASE " + Path(a.interactorObject.transform) + " canceled=" + a.isCanceled + " t=" + Time.time.ToString("F2"));
+        #endif
     }
 }
