@@ -37,6 +37,7 @@ public class Scanner : MonoBehaviour
     public bool Scanning { get { return Held && (previewScanning || triggerDown); } }
     public IReadOnlyList<RobotFaults> Robots { get { return robots; } }
     public IReadOnlyList<Fault> Faults { get { return faults; } }
+    bool scanAudioOn;
 
     Transform T { get { return tip ? tip : transform; } }
 
@@ -91,8 +92,26 @@ public class Scanner : MonoBehaviour
         if (beam) beam.enabled = false;
     }
 
-    void OnActivated(ActivateEventArgs a) { triggerDown = true; }
-    void OnDeactivated(DeactivateEventArgs a) { triggerDown = false; }
+    void OnActivated(ActivateEventArgs a)
+    {
+        triggerDown = true;
+        if (AudioManager.instance && !scanAudioOn)
+        {
+            scanAudioOn = true;
+            AudioManager.instance.Play("scanning_start");
+            AudioManager.instance.Play("scanning_loop");
+        }
+    }
+
+    void OnDeactivated(DeactivateEventArgs a) { triggerDown = false; StopScanAudio(); }
+
+    void StopScanAudio()
+    {
+        if (!scanAudioOn || !AudioManager.instance) return;
+        scanAudioOn = false;
+        AudioManager.instance.Stop("scanning_loop");
+        AudioManager.instance.Play("scanning_end");
+    }
     void OnReleased(SelectExitEventArgs a) { triggerDown = false; }
 
     void Update()

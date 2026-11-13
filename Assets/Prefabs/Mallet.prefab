@@ -341,7 +341,8 @@ MonoBehaviour:
   headPoint: {fileID: 0}
   minSpeed: 1.5
   hitCooldown: 0.3
-  hitSoundName: Hammer
+  hitSoundName: hammer_hit
+  hitVariants: 5
 --- !u!114 &3453891009879723022
 MonoBehaviour:
   m_ObjectHideFlags: 0

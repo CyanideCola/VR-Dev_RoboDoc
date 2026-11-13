@@ -218,7 +218,7 @@ MonoBehaviour:
   scanTime: 0.8
   viewMargin: 0.08
   beam: {fileID: 4423072790259202437}
-  scanSoundName: 
+  scanSoundName: fault_found
   previewHeld: 0
   previewScanning: 0
 --- !u!114 &2917042300163068305
@@ -981,9 +981,45 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1796722274545087542, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4294300441
+      objectReference: {fileID: 0}
+    - target: {fileID: 1796722274545087542, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 2114094816226900951, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4291274383
+      objectReference: {fileID: 0}
+    - target: {fileID: 2114094816226900951, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 3171474770562214915, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4291274383
+      objectReference: {fileID: 0}
+    - target: {fileID: 3171474770562214915, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 3293182784938576204, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_AdditionalShaderChannelsFlag
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 3725405698949015633, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
       propertyPath: m_Name
       value: ScannerScreen
+      objectReference: {fileID: 0}
+    - target: {fileID: 5879178562542425640, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 8331372260660836757, guid: 787170ea5c3afb1478ed4929b39be74a, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

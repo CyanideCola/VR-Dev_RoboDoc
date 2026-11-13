@@ -8,7 +8,8 @@ public class ToolHead : MonoBehaviour
     public Transform headPoint;            // the working end of the tool
     public float minSpeed = 1.5f;
     public float hitCooldown = 0.3f;
-    public string hitSoundName = "Hammer";   // name of a Sound in your AudioManager
+    public string hitSoundName = "hammer_hit";
+    public int hitVariants = 5;
 
     Vector3 lastPos;
     float speed;
@@ -33,7 +34,10 @@ public class ToolHead : MonoBehaviour
             f.Work(type, 1f);
             lastHit = Time.time;
             if (AudioManager.instance && !string.IsNullOrEmpty(hitSoundName))
-                AudioManager.instance.Play(hitSoundName);
+            {
+                string n = hitVariants > 1 ? hitSoundName + "_" + Random.Range(1, hitVariants + 1) : hitSoundName;
+                AudioManager.instance.Play(n);
+            }
         }
     }
 
