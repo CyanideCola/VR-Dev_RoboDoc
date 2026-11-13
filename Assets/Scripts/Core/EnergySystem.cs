@@ -49,6 +49,7 @@ public class EnergySystem : MonoBehaviour
         {
             criticalShown = true;
             Notifications.Push("<color=#FF5A4D>ENERGY CRITICAL</color>");
+            if (AudioManager.instance) AudioManager.instance.Play("energy_critical");
         }
         if (energy > 0f) return;
         energy = 0f;

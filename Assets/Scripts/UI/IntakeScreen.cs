@@ -89,6 +89,7 @@ static string Money(int v) =>
         {
             EnergySystem.Instance.Spend(EnergySystem.Instance.declinePenalty);
             Notifications.Push("Declined  -" + EnergySystem.Instance.declinePenalty + " energy");
+            if (AudioManager.instance) AudioManager.instance.Play("energy_from_decline");
         }
         TutorialEvents.Raise("Declined");
         intakePanel.SetActive(false);
