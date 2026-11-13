@@ -65,8 +65,6 @@ public class Robot : MonoBehaviour
         Destroy(gameObject);
     }
 
-    public bool AnyFixed { get { var rf = GetComponent<RobotFaults>(); return rf && rf.AnyFixed; } }
-
     // Scrap for parts instead of paying. Costs energy so it is never cheaper than declining.
     public void Dismantle()
     {
