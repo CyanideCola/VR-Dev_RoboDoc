@@ -7992,7 +7992,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 77}
   m_SizeDelta: {x: 200, y: 50}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &691557819
@@ -14622,7 +14622,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1762772141}
         m_TargetAssemblyTypeName: PauseMenu, Assembly-CSharp
-        m_MethodName: LeaveToMenu
+        m_MethodName: AskLeave
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -17149,6 +17149,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameOverScreen
   root: {fileID: 1308625845}
   reasonText: {fileID: 2142184006}
+  head: {fileID: 637989761}
+  distance: 1.2
 --- !u!4 &1565883492
 Transform:
   m_ObjectHideFlags: 0
@@ -18502,7 +18504,7 @@ MonoBehaviour:
   hiddenMissed: 0
   cleared: 0
   results: {fileID: 2105952799}
-  gameOver: {fileID: 0}
+  gameOver: {fileID: 1565883491}
 --- !u!4 &1670959316
 Transform:
   m_ObjectHideFlags: 0
@@ -19184,7 +19186,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &1762772141
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -20883,7 +20885,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: -34.3}
   m_SizeDelta: {x: 160, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1966180254

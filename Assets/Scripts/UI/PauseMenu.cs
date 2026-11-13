@@ -53,8 +53,7 @@ public class PauseMenu : MonoBehaviour
 
     void OnApplicationFocus(bool focus)
     {
-        var gp = GameProgress.Instance;
-        if (CanPause) Pause();
+        if (!focus && CanPause && !paused) Pause();
     }
     bool CanPause
     {
