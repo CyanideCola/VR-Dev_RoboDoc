@@ -36,13 +36,15 @@ public class ShopScreen : MonoBehaviour
             for (int i = 0; i < rows.Length && i < stock.entries.Length; i++)
             {
                 var e = stock.entries[i];
-                rows[i].buy.interactable = !e.owned;
+                // During the Demo only the item the lesson asks for can be bought
+                rows[i].buy.interactable = !e.owned && DemoRules.CanBuy(e.tool);
                 rows[i].buyLabel.text = e.owned ? "OWNED" : e.price + "G";
                 if (rows[i].respawn) rows[i].respawn.interactable = e.owned;
             }
 
         var es = EnergySystem.Instance;
-        if (refillLabel && es) refillLabel.text = es.RefillUnlocked ? es.refillPrice + "G" : "LOCKED";
+        bool refillForSale = !DemoRules.Active || DemoRules.StoreOpen;
+        if (refillLabel && es) refillLabel.text = es.RefillUnlocked && refillForSale ? es.refillPrice + "G" : "LOCKED";
 
         if (takePart && gp)
         {
@@ -52,7 +54,7 @@ public class ShopScreen : MonoBehaviour
 
         if (buyPart && stock && gp)
         {
-            buyPart.interactable = gp.money >= stock.partPrice;
+            buyPart.interactable = gp.money >= stock.partPrice && !DemoRules.Active;
             if (buyPartLabel) buyPartLabel.text = "BUY " + stock.partPrice + "G";
         }
     }

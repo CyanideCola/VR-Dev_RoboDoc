@@ -17992,7 +17992,7 @@ MonoBehaviour:
   rack: {fileID: 1022745270}
   tools: {fileID: 0}
   max: 100
-  energy: 1
+  energy: 100
   drainPerRobotPerSecond: 0.5
   declinePenalty: 10
   refillAmount: 50

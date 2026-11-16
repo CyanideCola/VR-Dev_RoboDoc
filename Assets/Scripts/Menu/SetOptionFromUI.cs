@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -26,10 +27,13 @@ public class SetOptionFromUI : MonoBehaviour
 
         if (teleportDropdown)
         {
+            // Advanced: the left stick moves the camera. Off by default, so only the right stick drives.
+            foreach (var t in teleportDropdown.transform.parent.GetComponentsInChildren<TMP_Text>(true))
+                if (!t.transform.IsChildOf(teleportDropdown.transform)) { t.text = "Advanced"; break; }
             teleportDropdown.ClearOptions();
-            teleportDropdown.AddOptions(new List<string> { "Right stick", "Both sticks" });
-            teleportDropdown.SetValueWithoutNotify(ControlOptions.LeftStickTeleport ? 1 : 0);
-            teleportDropdown.onValueChanged.AddListener(v => ControlOptions.LeftStickTeleport = v == 1);
+            teleportDropdown.AddOptions(new List<string> { "Off", "On (left stick moves)" });
+            teleportDropdown.SetValueWithoutNotify(ControlOptions.Advanced ? 1 : 0);
+            teleportDropdown.onValueChanged.AddListener(v => ControlOptions.Advanced = v == 1);
         }
 
         // Comfort: a quick blink to black on every teleport, for players who feel the jump

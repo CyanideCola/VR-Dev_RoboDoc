@@ -70,6 +70,19 @@ public class RobotFaults : MonoBehaviour
         get { int n = 0; foreach (var f in hidden) if (f && !f.revealed) n++; return n; }
     }
 
+    // Faults the player could see and left alone: the symptoms on the screen, and any hidden fault
+    // the scanner did find. Handing these back costs time, the same way a missed hidden fault does.
+    public int Unfixed
+    {
+        get
+        {
+            int n = 0;
+            foreach (var f in reported) if (f && !f.isFixed) n++;
+            foreach (var f in hidden) if (f && f.revealed && !f.isFixed) n++;
+            return n;
+        }
+    }
+
     // Scanner: shows every hidden fault on this robot. Returns how many were new.
     public int RevealHidden()
     {

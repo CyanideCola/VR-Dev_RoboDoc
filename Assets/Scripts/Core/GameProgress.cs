@@ -31,7 +31,9 @@ public class GameProgress : MonoBehaviour
     public float elapsed;                     // challenge stopwatch
     public float missedPenaltySeconds = 30f;  // added to the score for every hidden fault handed back unfound
     public int hiddenMissed;
-    public float Score { get { return elapsed + hiddenMissed * missedPenaltySeconds; } }
+    public float unfixedPenaltySeconds = 20f; // added for every fault that was handed back unrepaired
+    public int unfixedMissed;
+    public float Score { get { return elapsed + hiddenMissed * missedPenaltySeconds + unfixedMissed * unfixedPenaltySeconds; } }
     public bool cleared;
     public ChallengeResults results;          // shown when the challenge is cleared
     public GameOverScreen gameOver;
@@ -95,7 +97,7 @@ public class GameProgress : MonoBehaviour
         running = false;
         cleared = true;
         Notifications.Push("CHALLENGE CLEAR  " + Leaderboard.Format(Score));
-        if (results) results.Show(elapsed, hiddenMissed, Score);
+        if (results) results.Show(elapsed, hiddenMissed, unfixedMissed, Score);
         else Invoke(nameof(ToMenu), 6f);
     }
 

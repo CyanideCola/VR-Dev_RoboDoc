@@ -35,15 +35,17 @@ public class Fault : MonoBehaviour
         pay = e.pay;
     }
 
-    public void Work(ToolType tool, float amount)
+    // Returns true when the hit counted: right tool, fault visible, patient accepted.
+    // A hit that does nothing must not sound like one that does.
+    public bool Work(ToolType tool, float amount)
     {
-        if (tool != requiredTool) return;                       // wrong tool: nothing happens
-        if (!Visible) return;                                   // hidden fault: scan it first
+        if (tool != requiredTool) return false;                 // wrong tool: nothing happens
+        if (!Visible) return false;                             // hidden fault: scan it first
 
         if (owner && owner.state != Robot.State.Repair)         // robot not accepted yet
         {
             if (Time.time > nextHint) { Notifications.Push("Accept the patient first"); nextHint = Time.time + 2f; }
-            return;
+            return false;
         }
 
         if (isFixed)
@@ -53,11 +55,12 @@ public class Fault : MonoBehaviour
                 isFixed = false; progress = 0f; extraHits = 0; Refresh();
                 Notifications.Push("Over-hit! The damage is back");
             }
-            return;
+            return true;
         }
 
         progress += amount;
         if (progress >= workNeeded) { isFixed = true; extraHits = 0; Refresh(); TutorialEvents.Raise("Fixed"); }
+        return true;
     }
 
     public void Reveal() { revealed = true; Refresh(); }

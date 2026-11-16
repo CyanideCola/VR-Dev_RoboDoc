@@ -52,14 +52,21 @@ public class Robot : MonoBehaviour
         var rf = GetComponent<RobotFaults>();
         int pay = rf ? rf.Evaluate() : 0;
         int missed = rf ? rf.HiddenNotFound : 0;
+        int unfixed = rf ? rf.Unfixed : 0;
         var gp = GameProgress.Instance;
-        if (gp) { gp.money += pay; gp.hiddenMissed += missed; gp.RobotFinished(); }   // missed faults count before the last robot ends the run
+        // Both penalties go on the score before the last robot is able to end the run
+        if (gp) { gp.money += pay; gp.hiddenMissed += missed; gp.unfixedMissed += unfixed; gp.RobotFinished(); }
         if (poofPrefab) Instantiate(poofPrefab, transform.position + Vector3.up, Quaternion.identity);
         Notifications.Push("+" + pay + " G");
         if (missed > 0)   // nothing is said when the scanner found them all, or there were none
         {
             string penalty = gp && GameMode.IsChallenge ? "  +" + Mathf.RoundToInt(missed * gp.missedPenaltySeconds) + "s" : "";
             Notifications.Push("<color=#FFC53D>" + missed + (missed == 1 ? " hidden fault" : " hidden faults") + " not found" + penalty + "</color>");
+        }
+        if (unfixed > 0)   // faults that were on the screen and left alone
+        {
+            string penalty = gp && GameMode.IsChallenge ? "  +" + Mathf.RoundToInt(unfixed * gp.unfixedPenaltySeconds) + "s" : "";
+            Notifications.Push("<color=#FFC53D>" + unfixed + (unfixed == 1 ? " fault" : " faults") + " left unrepaired" + penalty + "</color>");
         }
         if (pay > 0 && AudioManager.instance) AudioManager.instance.Play(moneySoundName);
         Destroy(gameObject);

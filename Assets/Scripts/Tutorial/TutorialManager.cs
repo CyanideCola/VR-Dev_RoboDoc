@@ -37,6 +37,7 @@ public class TutorialManager : MonoBehaviour
         TutorialEvents.Raised -= OnEvent;
         if (nextButton) nextButton.onClick.RemoveListener(OnNext);
         IntakeScreen.AcceptLocked = false;
+        DemoRules.Complete = true;   // nothing of the lesson is left to protect
     }
 
     // The Demo always runs the full lesson, so every visitor gets it
@@ -53,8 +54,9 @@ public class TutorialManager : MonoBehaviour
         if (stock) stock.GrantStarters();
         var gp = GameProgress.Instance;
         if (gp) gp.running = true;
+        DemoRules.Complete = true;
         spawner.SpawnNext();
-        Say("CHALLENGE: hand back " + (gp ? gp.challengeRobots : 8) + " robots as fast as you can. Your mallet and spray can are at the store. Each hidden fault you miss adds " + Mathf.RoundToInt(gp ? gp.missedPenaltySeconds : 30f) + " seconds. The clock is running!", shopTarget);
+        Say("CHALLENGE: hand back " + (gp ? gp.challengeRobots : 8) + " robots as fast as you can. Your mallet and spray can are at the store. Each hidden fault you miss adds " + Mathf.RoundToInt(gp ? gp.missedPenaltySeconds : 30f) + " seconds, and every fault you hand back unrepaired adds " + Mathf.RoundToInt(gp ? gp.unfixedPenaltySeconds : 20f) + ". The clock is running!", shopTarget);
     }
 
     void OnEvent(string id)
@@ -68,9 +70,10 @@ public class TutorialManager : MonoBehaviour
     IEnumerator Run()
     {
         running = true;
-        Say(ControlOptions.LeftStickTeleport
-            ? "Welcome to RoboDoc! To start, push either thumbstick forward."
-            : "Welcome to RoboDoc! To start, find your right thumbstick and push it up.", null);
+        DemoRules.Reset();
+        Say(ControlOptions.Advanced
+            ? "Welcome to " + GameInfo.Name + "! To start, push either thumbstick forward."
+            : "Welcome to " + GameInfo.Name + "! To start, find your right thumbstick and push it up.", null);
         yield return WaitForAny("TeleportRay");
 
         Say("In this game, you can only move using the teleporters on the floor. Look behind you and try it out.", nearStand);
@@ -79,10 +82,13 @@ public class TutorialManager : MonoBehaviour
         Say("Let's buy your first tools. Aim the ray at the station by the shop and let go.", shopTarget);
         yield return new WaitUntil(() => Near(shopStand));
 
+        DemoRules.Ask(ToolType.Hammer);   // the store sells only what this line asks for
         Say("Buy the MALLET for 50 gold: point at the button in the shop and pull the trigger (index finger).", shopTarget);
         yield return WaitForAny("Bought:Hammer");
+        DemoRules.Ask(ToolType.SprayCan);
         Say("Now buy the SPRAY CAN, also 50 gold.", shopTarget);
         yield return WaitForAny("Bought:SprayCan");
+        DemoRules.Ask(null);
 
         Say(GrabMode.Toggle
             ? "Reach out to the mallet and press the side grip button (middle finger) once. It stays in your hand until you press again."
@@ -116,6 +122,7 @@ public class TutorialManager : MonoBehaviour
         // Part two: energy, declining, the scanner and dismantling. Energy drains from here; the Demo has no clock.
         var gp = GameProgress.Instance;
         if (gp) gp.running = true;
+        DemoRules.StoreOpen = true;         // the lesson is done with its two tools, so refills can be bought
         IntakeScreen.AcceptLocked = true;   // this lesson is about declining
         Say("Your energy is the bar at the bottom right. Every robot in the rack drains it, and at zero the shift ends. Refills are sold in the store. Not every patient is worth it: press DECLINE on this one. Declining costs 10 energy.", computerTarget);
         yield return WaitForAny("Declined");
@@ -124,8 +131,10 @@ public class TutorialManager : MonoBehaviour
         var stock = FindAnyObjectByType<ToolStock>();
         var scanner = stock ? System.Array.Find(stock.entries, e => e.tool == ToolType.Scanner) : null;
         if (gp && scanner != null && gp.money < scanner.price) gp.money = scanner.price;   // never stuck for gold here
+        DemoRules.Ask(ToolType.Scanner);
         Say("Some faults are hidden and only show up on a scanner. Teleport to the store and buy the SCANNER.", shopTarget);
         yield return WaitForAny("Bought:Scanner");
+        DemoRules.Ask(null);
 
         Say("Pick up the scanner: its screen shows every fault it can see. Go to the rack, aim it at the next patient and hold the trigger until it finds the hidden fault.", computerTarget);
         float scannedFor = 0f;   // if the fault is on the far side, move on after 15 seconds of scanning
@@ -141,6 +150,7 @@ public class TutorialManager : MonoBehaviour
         Say("That's everything you need. Try the CHALLENGE from the main menu: " + (gp ? gp.challengeRobots : 8) + " robots, fastest time wins. Back to the menu...", null);
         yield return new WaitForSeconds(demoEndDelay);
         running = false;
+        DemoRules.Complete = true;
         if (gp) gp.ToMenu();
     }
 

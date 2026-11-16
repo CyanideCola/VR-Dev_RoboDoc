@@ -29,16 +29,16 @@ public class ToolHead : MonoBehaviour
     {
         if (mode != Mode.Hit || speed < minSpeed || Time.time - lastHit < hitCooldown) return;
         var f = other.GetComponentInParent<Fault>();
-        if (f)
-        {
-            f.Work(type, 1f);
-            lastHit = Time.time;
-            if (AudioManager.instance && !string.IsNullOrEmpty(hitSoundName))
-            {
-                string n = hitVariants > 1 ? hitSoundName + "_" + Random.Range(1, hitVariants + 1) : hitSoundName;
-                AudioManager.instance.Play(n);
-            }
-        }
+        if (!f) return;
+
+        // The mallet only sounds on damage it can actually work on: not on rust, not on an empty
+        // socket, and not on a fault the scanner has not revealed yet.
+        bool counted = f.Work(type, 1f);
+        lastHit = Time.time;
+        if (!counted || !AudioManager.instance || string.IsNullOrEmpty(hitSoundName)) return;
+
+        string n = hitVariants > 1 ? hitSoundName + "_" + Random.Range(1, hitVariants + 1) : hitSoundName;
+        AudioManager.instance.Play(n);
     }
 
     void OnTriggerStay(Collider other)

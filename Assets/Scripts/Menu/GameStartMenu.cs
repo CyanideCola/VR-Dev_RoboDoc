@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -38,6 +39,27 @@ public class GameStartMenu : MonoBehaviour
         {
             item.onClick.AddListener(EnableMainMenu);
         }
+
+        ApplyName();
+        StyleButtons();
+    }
+
+    // The finished name, wherever the working title was typed into the menu
+    void ApplyName()
+    {
+        foreach (var t in GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (t.text.IndexOf("robodoc", System.StringComparison.OrdinalIgnoreCase) < 0) continue;
+            if (t.text.Contains(GameInfo.Name)) continue;   // already carrying the finished name
+            t.text = t.text.Replace("RoboDoc", GameInfo.Name).Replace("ROBODOC", GameInfo.Name).Replace("Robodoc", GameInfo.Name);
+        }
+    }
+
+    // The buttons were plain white blocks: give them the game's panel look, with the label in colour
+    void StyleButtons()
+    {
+        foreach (var b in GetComponentsInChildren<Button>(true))
+            PanelSkin.StyleButton(b, PanelSkin.Raised, PanelSkin.Cyan);
     }
 
     public void QuitGame()

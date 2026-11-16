@@ -37,6 +37,8 @@ public class ToolStock : MonoBehaviour
     {
         var e = entries[i];
         if (e.owned) { Notifications.Push("Already owned"); return; }
+        // During the Demo the lesson is the only thing on offer, so no gold goes on a side purchase
+        if (DemoRules.Active && !DemoRules.CanBuy(e.tool)) { DemoRules.Refuse(); return; }
         if (!GameProgress.Instance.TrySpend(e.price)) { Notifications.Push("Need " + e.price + " gold"); return; }
         e.owned = true;
         Spawn(e);
@@ -71,6 +73,7 @@ public class ToolStock : MonoBehaviour
     {
         var gp = GameProgress.Instance;
         if (!gp) return;
+        if (DemoRules.Refuse()) return;   // parts are not part of the Demo lesson
         if (!gp.TrySpend(partPrice)) { Notifications.Push("Need " + partPrice + " gold"); return; }
         gp.parts++;
         Notifications.Push("Bought a spare part");

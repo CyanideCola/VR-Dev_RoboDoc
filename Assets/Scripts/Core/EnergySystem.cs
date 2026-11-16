@@ -58,6 +58,8 @@ public class EnergySystem : MonoBehaviour
 
     public void BuyRefill()
     {
+        // The Demo pays for two tools and a scanner out of the same purse, so nothing else is sold yet
+        if (DemoRules.Active && !DemoRules.StoreOpen) { DemoRules.Refuse(); return; }
         if (!RefillUnlocked) { Notifications.Push("Buy both tools first"); return; }
         if (energy >= max) { Notifications.Push("Energy is full"); return; }
         if (!GameProgress.Instance.TrySpend(refillPrice)) { Notifications.Push("Need " + refillPrice + " gold"); return; }
