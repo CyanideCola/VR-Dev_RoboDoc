@@ -1716,6 +1716,162 @@ public static class RoboDocSetup
         rt.anchorMin = aMin; rt.anchorMax = aMax; rt.offsetMin = oMin; rt.offsetMax = oMax;
     }
 
+    // ---------- the player starts on the Home anchor ----------
+
+    [MenuItem("Tools/RoboDoc/Attach Recenter On Start")]
+    public static void RunRecenter()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath);
+        var origin = Object.FindAnyObjectByType<Unity.XR.CoreUtils.XROrigin>(FindObjectsInactive.Include);
+        var home = GameObject.Find("Home Teleport Anchor");
+        var r = GetOrAdd<RecenterOnStart>(origin.gameObject);
+        r.origin = origin;
+        r.home = home.transform;
+        EditorUtility.SetDirty(r);
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+    }
+
+    // ---------- pause and run-over screens, in the store's style ----------
+
+    static readonly Color Danger = Hex("FF5A4D");
+    const float ScreenWidth = 400f;   // the store's width
+
+    [MenuItem("Tools/RoboDoc/Build Pause and Run Over Screens")]
+    public static void RunEndScreens()
+    {
+        var scene = EditorSceneManager.OpenScene(ScenePath);
+        var title = Font("ChakraPetch-Regular SDF");
+        var mono = Font("ShareTechMono-Regular SDF");
+        var store = Object.FindObjectsByType<Canvas>(FindObjectsInactive.Include, FindObjectsSortMode.None).First(c => c.name == "StoreCanvas").transform;
+        var gp = Object.FindAnyObjectByType<GameProgress>(FindObjectsInactive.Include);
+
+        // ----- pause -----
+        var pause = Object.FindAnyObjectByType<PauseMenu>(FindObjectsInactive.Include);
+        var pc = pause.panel.transform;
+        // two scripts were copied onto this canvas by mistake: a second results screen and a head follower
+        foreach (var stray in pc.GetComponents<ChallengeResults>()) if (gp.results != stray) Object.DestroyImmediate(stray);
+        foreach (var stray in pc.GetComponents<PanelFollow>()) Object.DestroyImmediate(stray);
+        ClearChildren(pc);
+        var pRows = EndScreenFrame(pc, store, "ROBODOC//PAUSED", Cyan, title, 5, out pause.headerText, out pause.moneyText);
+
+        var main = Rect("Main", pRows, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var mainList = RowList(main);
+        pause.robotsText = InfoRow(mainList, "ROBOTS DONE", mono);
+        pause.energyText = InfoRow(mainList, "ENERGY", mono);
+        pause.timeText = InfoRow(mainList, "TIME", mono);
+        var back = Row(mainList, "BACK TO WORK", mono);
+        UnityEventTools.AddPersistentListener(Wide(Btn(back, "Resume", "RESUME", mono, Cyan, out _)).onClick, pause.Resume);
+        var leave = Row(mainList, "LEAVE THE RUN", mono);
+        UnityEventTools.AddPersistentListener(Wide(Btn(leave, "MainMenu", "MAIN MENU", mono, Amber, out _)).onClick, pause.AskLeave);
+        pause.mainGroup = main.gameObject;
+
+        var confirm = Rect("Confirm", pRows, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var confirmList = RowList(confirm);
+        MessageRow(confirmList, "Your shift ends here. Nothing you earned is kept.", mono, Text);
+        var answer = Row(confirmList, "LEAVE?", mono);
+        UnityEventTools.AddPersistentListener(Btn(answer, "Yes", "YES, LEAVE", mono, Danger, out _).onClick, pause.LeaveToMenu);
+        UnityEventTools.AddPersistentListener(Btn(answer, "No", "NO", mono, Cyan, out _).onClick, pause.CancelLeave);
+        pause.confirmPanel = confirm.gameObject;
+        confirm.gameObject.SetActive(false);
+        EditorUtility.SetDirty(pause);
+
+        // ----- run over -----
+        var over = Object.FindAnyObjectByType<GameOverScreen>(FindObjectsInactive.Include);
+        var oc = over.root.transform;
+        ClearChildren(oc);
+        var oRows = EndScreenFrame(oc, store, "ROBODOC//RUN OVER", Danger, title, 4, out _, out over.moneyText, 1);
+        var oList = RowList(oRows);
+        over.reasonText = MessageRow(oList, "POWER OUT", title, Danger);
+        over.reasonText.fontSizeMax = 30f;
+        over.robotsText = InfoRow(oList, "ROBOTS DONE", mono);
+        over.timeText = InfoRow(oList, "TIME", mono);
+        var again = Row(oList, "WHAT NOW?", mono);
+        UnityEventTools.AddPersistentListener(Btn(again, "Retry", "TRY AGAIN", mono, Cyan, out _).onClick, over.Retry);
+        UnityEventTools.AddPersistentListener(Btn(again, "Menu", "MAIN MENU", mono, Amber, out _).onClick, over.Menu);
+        EditorUtility.SetDirty(over);
+
+        EditorSceneManager.MarkSceneDirty(scene);
+        EditorSceneManager.SaveScene(scene);
+    }
+
+    static void ClearChildren(Transform t)
+    {
+        for (int i = t.childCount - 1; i >= 0; i--) Object.DestroyImmediate(t.GetChild(i).gameObject);
+    }
+
+    // The store's frame on another canvas: same width and scale, dark backing, header with the money on the
+    // right, and the divider. Returns the area for the rows. extraHeight adds room for taller message rows.
+    static RectTransform EndScreenFrame(Transform canvas, Transform store, string heading, Color headingColor, TMP_FontAsset font,
+        int rows, out TMP_Text header, out TMP_Text money, int tallRows = 0)
+    {
+        var rt = (RectTransform)canvas;
+        var parentScale = rt.parent ? rt.parent.lossyScale : Vector3.one;
+        var s = store.lossyScale;
+        rt.localScale = new Vector3(s.x / parentScale.x, s.y / parentScale.y, s.z / parentScale.z);
+        rt.sizeDelta = new Vector2(ScreenWidth, 58f + rows * 33f + tallRows * 30f + 10f);
+
+        var bg = Rect("Background", canvas, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero);
+        var img = bg.gameObject.AddComponent<Image>();
+        img.color = new Color(Ink.r, Ink.g, Ink.b, 0.95f);
+        header = Label("Header", canvas, heading, font, 28, headingColor, TextAlignmentOptions.Left);
+        Place(header.rectTransform, new Vector2(0, 1), new Vector2(1, 1), new Vector2(16, -44), new Vector2(-110, -6));
+        header.enableAutoSizing = true;   // longer headings shrink instead of being cut off
+        header.fontSizeMin = 18;
+        header.fontSizeMax = 28;
+        money = Label("MoneyText", canvas, "0 G", font, 28, Amber, TextAlignmentOptions.Right);
+        Place(money.rectTransform, new Vector2(1, 1), new Vector2(1, 1), new Vector2(-100, -44), new Vector2(-16, -6));
+        var divider = Rect("Divider", canvas, new Vector2(0, 1), new Vector2(1, 1), new Vector2(10, -50), new Vector2(-10, -48));
+        divider.gameObject.AddComponent<Image>().color = Line;
+        return Rect("Rows", canvas, Vector2.zero, Vector2.one, new Vector2(10, 10), new Vector2(-10, -58));
+    }
+
+    // Rows stacked from the top, like the store's list
+    static RectTransform RowList(RectTransform area)
+    {
+        var v = area.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.spacing = 3;
+        v.childAlignment = TextAnchor.UpperCenter;
+        v.childControlHeight = v.childControlWidth = true;
+        v.childForceExpandHeight = false;
+        v.childForceExpandWidth = true;
+        return area;
+    }
+
+    // A store row whose right side is a value instead of buttons
+    static TMP_Text InfoRow(RectTransform list, string label, TMP_FontAsset font)
+    {
+        var row = Row(list, label, font);
+        var value = Label("Value", row, "-", font, 18, Amber, TextAlignmentOptions.Right);
+        value.gameObject.AddComponent<LayoutElement>().preferredWidth = 214;
+        return value;
+    }
+
+    // A taller row with one centred, wrapping line
+    static TMP_Text MessageRow(RectTransform list, string text, TMP_FontAsset font, Color color)
+    {
+        var row = Row(list, "", font);
+        row.name = "Message";
+        row.GetComponent<LayoutElement>().preferredHeight = 60;
+        var label = row.Find("Label").GetComponent<TMP_Text>();
+        label.text = text;
+        label.color = color;
+        label.alignment = TextAlignmentOptions.Center;
+        label.textWrappingMode = TextWrappingModes.Normal;
+        label.overflowMode = TextOverflowModes.Overflow;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 14;
+        label.fontSizeMax = 20;
+        return label;
+    }
+
+    // One button spanning both button columns
+    static Button Wide(Button b)
+    {
+        b.GetComponent<LayoutElement>().preferredWidth = 214;
+        return b;
+    }
+
     // ---------- helpers ----------
 
     static GameObject Visual(PrimitiveType type, string name, Transform parent, Vector3 pos, Vector3 scale, Material m)

@@ -1,18 +1,24 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.UI;
 
+// The pause screen, in the store's style: a header, the shift so far, and RESUME / MAIN MENU.
+// MAIN MENU first asks to confirm on the same panel. Time stops and the player cannot move while it is up.
+// The layout is built by Tools > RoboDoc > Build Pause and Run Over Screens.
 public class PauseMenu : MonoBehaviour
 {
     public GameObject panel;           // the pause screen
-    public GameObject confirmPanel;    // 'Leave the run?' Yes / No
+    public GameObject mainGroup;       // the stats and RESUME / MAIN MENU rows
+    public GameObject confirmPanel;    // 'Leave the run?' YES / NO, shown in place of mainGroup
+    public TMP_Text headerText;
+    public TMP_Text moneyText;
+    public TMP_Text robotsText, energyText, timeText;
     public InputAction menu = new InputAction("Pause", InputActionType.Button, "<XRController>{LeftHand}/{MenuButton}");
-    bool paused;
-    public Transform head;            // the XR camera
+    public Transform head;             // the XR camera
     public GameOverScreen gameOver;
     public float distance = 1.2f;
-    public Vector2 confirmSize = new Vector2(760f, 400f);
+
+    bool paused;
 
     void OnEnable()  { menu.Enable(); menu.performed += OnMenu; }
     void OnDisable() { menu.performed -= OnMenu; menu.Disable(); if (paused) Resume(); }
@@ -20,48 +26,11 @@ public class PauseMenu : MonoBehaviour
     void Start()
     {
         if (panel) panel.SetActive(false);
-        if (confirmPanel) { LayoutConfirm(); confirmPanel.SetActive(false); }
-    }
-
-    // The leave question: its own dark panel, a headline and the two answers side by side
-    void LayoutConfirm()
-    {
-        var rt = (RectTransform)confirmPanel.transform;
-        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta = confirmSize;
-        PanelSkin.Background(rt, confirmSize);
-        PanelSkin.Rule(rt, confirmSize, PanelSkin.Amber);
-
-        var title = PanelSkin.Label(rt, "Confirm");
-        if (title)
-        {
-            PanelSkin.Headline(title, "LEAVE THE RUN?", 62f, PanelSkin.Amber);
-            PanelSkin.Place(title.rectTransform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(24f, -124f), new Vector2(-24f, -24f));
-        }
-
-        var body = PanelSkin.Body(rt, title, "Your shift ends here. Nothing you earned is kept.", 34f, PanelSkin.Light);
-        PanelSkin.Place(body.rectTransform, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(48f, 140f), new Vector2(-48f, -132f));
-
-        Answer(rt, "Yes", "YES, LEAVE", PanelSkin.Danger, new Vector2(-330f, 48f), new Vector2(-24f, 140f));
-        Answer(rt, "No", "KEEP WORKING", PanelSkin.Cyan, new Vector2(24f, 48f), new Vector2(330f, 140f));
-    }
-
-    static void Answer(RectTransform panel, string name, string label, Color color, Vector2 oMin, Vector2 oMax)
-    {
-        var t = panel.Find(name);
-        if (!t) return;
-        PanelSkin.Place((RectTransform)t, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), oMin, oMax);
-        var text = t.GetComponentInChildren<TMP_Text>(true);
-        if (text) text.text = label;
-        var button = t.GetComponent<Button>();
-        if (button) PanelSkin.StyleButton(button, PanelSkin.Raised, color);
+        if (confirmPanel) confirmPanel.SetActive(false);
     }
 
     void OnMenu(InputAction.CallbackContext c)
     {
-        var gp = GameProgress.Instance;
         if (paused) Resume();
         else if (CanPause) Pause();
     }
@@ -71,8 +40,10 @@ public class PauseMenu : MonoBehaviour
         paused = true;
         Time.timeScale = 0f;
         AudioListener.pause = true;
+        PlayerLock.Set(true);          // no teleporting away from the screen
+        ShowMain();
+        Refresh();
         panel.SetActive(true);
-        PanelSkin.Background((RectTransform)panel.transform, new Vector2(900f, 520f));   // a backing so the list reads
         Place();
     }
 
@@ -81,36 +52,66 @@ public class PauseMenu : MonoBehaviour
         paused = false;
         Time.timeScale = 1f;
         AudioListener.pause = false;
+        PlayerLock.Set(false);
         panel.SetActive(false);
-        if (confirmPanel) confirmPanel.SetActive(false);
+        ShowMain();
     }
 
-    public void AskLeave() { confirmPanel.SetActive(true); }
-    public void CancelLeave() { confirmPanel.SetActive(false); }
+    public void AskLeave()
+    {
+        if (mainGroup) mainGroup.SetActive(false);
+        if (confirmPanel) confirmPanel.SetActive(true);
+        if (headerText) headerText.text = "ROBODOC//LEAVE?";
+    }
+
+    public void CancelLeave() { ShowMain(); }
 
     public void LeaveToMenu()
     {
         Time.timeScale = 1f;
         AudioListener.pause = false;
+        PlayerLock.Set(false);
         GameProgress.Instance.ToMenu();
+    }
+
+    void ShowMain()
+    {
+        if (mainGroup) mainGroup.SetActive(true);
+        if (confirmPanel) confirmPanel.SetActive(false);
+        if (headerText) headerText.text = "ROBODOC//PAUSED";
+    }
+
+    // The shift so far
+    void Refresh()
+    {
+        var gp = GameProgress.Instance;
+        if (gp && moneyText) moneyText.text = gp.money.ToString("N0") + " G";
+        if (gp && robotsText) robotsText.text = GameMode.IsChallenge ? gp.totalRobotsDone + " / " + gp.challengeRobots : gp.totalRobotsDone.ToString();
+        var es = EnergySystem.Instance;
+        if (energyText) energyText.text = es ? Mathf.CeilToInt(es.energy) + " / " + Mathf.RoundToInt(es.max) : "-";
+        if (timeText) timeText.text = gp && GameMode.IsChallenge ? Leaderboard.Format(gp.elapsed) : "NO CLOCK";
     }
 
     void OnApplicationFocus(bool focus)
     {
         if (!focus && CanPause && !paused) Pause();
     }
+
     bool CanPause
     {
         get
         {
             var gp = GameProgress.Instance;
-            return gp && !gp.cleared && (!gameOver || !gameOver.root.activeSelf);
+            return gp && !gp.cleared && (!gameOver || !gameOver.root || !gameOver.root.activeSelf);
         }
     }
 
     void Place()
     {
-        Vector3 f = head.forward; f.y = 0f; f.Normalize();
+        if (!head) return;
+        Vector3 f = head.forward; f.y = 0f;
+        if (f.sqrMagnitude < 0.01f) f = Vector3.forward;
+        f.Normalize();
         panel.transform.position = head.position + f * distance;
         panel.transform.rotation = Quaternion.LookRotation(f);
     }

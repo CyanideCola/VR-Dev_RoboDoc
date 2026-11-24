@@ -29,7 +29,7 @@ public class GameProgress : MonoBehaviour
     // Which level row each challenge robot uses, by spawn order (past the end, the last value repeats)
     public int[] challengeLevels = { 0, 0, 1, 1, 2, 2, 3, 4 };
     public float elapsed;                     // challenge stopwatch
-    public float missedPenaltySeconds = 30f;  // added to the score for every hidden fault handed back unfound
+    public float missedPenaltySeconds = 10f;  // added to the score for every hidden fault handed back unfound
     public int hiddenMissed;
     public float unfixedPenaltySeconds = 20f; // added for every fault that was handed back unrepaired
     public int unfixedMissed;

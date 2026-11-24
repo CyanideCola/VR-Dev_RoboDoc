@@ -56,7 +56,7 @@ public class TutorialManager : MonoBehaviour
         if (gp) gp.running = true;
         DemoRules.Complete = true;
         spawner.SpawnNext();
-        Say("CHALLENGE: hand back " + (gp ? gp.challengeRobots : 8) + " robots as fast as you can. Your mallet and spray can are at the store. Each hidden fault you miss adds " + Mathf.RoundToInt(gp ? gp.missedPenaltySeconds : 30f) + " seconds, and every fault you hand back unrepaired adds " + Mathf.RoundToInt(gp ? gp.unfixedPenaltySeconds : 20f) + ". The clock is running!", shopTarget);
+        Say("CHALLENGE: hand back " + (gp ? gp.challengeRobots : 8) + " robots as fast as you can. Your mallet and spray can are at the store. Each hidden fault you miss adds " + Mathf.RoundToInt(gp ? gp.missedPenaltySeconds : 10f) + " seconds, and every fault you hand back unrepaired adds " + Mathf.RoundToInt(gp ? gp.unfixedPenaltySeconds : 20f) + ". The clock is running!", shopTarget);
     }
 
     void OnEvent(string id)
